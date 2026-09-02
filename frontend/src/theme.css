@@ -53,6 +53,33 @@ html, body, #root {
 
 body { overscroll-behavior-y: none; }
 
+/* ---- Custom scrollbars (dark theme) ---- */
+/* WebKit (Chrome, Safari, Edge, iOS) */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-elevated);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-light);
+  border-radius: 10px;
+  border: 2px solid var(--bg-elevated);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+::-webkit-scrollbar-corner {
+  background: var(--bg-elevated);
+}
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-light) var(--bg-elevated);
+}
+
 a { color: var(--brand-light); text-decoration: none; }
 button { font-family: inherit; }
 
@@ -334,7 +361,23 @@ button { font-family: inherit; }
   gap: 8px;
   overflow-x: auto;
   margin-top: 10px;
-  padding-bottom: 2px;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-light) transparent;
+}
+.item-card .thumbs::-webkit-scrollbar {
+  height: 6px;
+}
+.item-card .thumbs::-webkit-scrollbar-track {
+  background: transparent;
+}
+.item-card .thumbs::-webkit-scrollbar-thumb {
+  background: var(--border-light);
+  border-radius: 6px;
+  border: none;
+}
+.item-card .thumbs::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
 }
 .item-card .thumbs img {
   height: 76px;
