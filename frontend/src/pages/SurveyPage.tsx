@@ -7,6 +7,7 @@ import { processImage, quickThumbnail } from "../lib/image";
 import { useSpeechRecognition } from "../hooks/useSpeechRecognition";
 import { useAudioRecorder } from "../hooks/useAudioRecorder";
 import ThumbImg from "../components/ThumbImg";
+import ImageViewer from "../components/ImageViewer";
 
 const DEFAULT_CATEGORIES = ["Cameras", "Access Control", "Intercom", "Air Quality", "Alarms", "Workplace", "Other"];
 
@@ -27,6 +28,9 @@ export default function SurveyPage() {
   const [processingPhotos, setProcessingPhotos] = useState(false);
   const [savingItem, setSavingItem] = useState(false);
   const [toast, setToast] = useState("");
+  const [viewerBlob, setViewerBlob] = useState<Blob | null>(null);
+  const [viewerAlt, setViewerAlt] = useState("");
+  const [viewerSaveUuid, setViewerSaveUuid] = useState<string | null>(null);
 
   const speech = useSpeechRecognition();
   const recorder = useAudioRecorder();
@@ -49,6 +53,33 @@ export default function SurveyPage() {
   function showToast(msg: string) {
     setToast(msg);
     setTimeout(() => setToast(""), 1800);
+  }
+
+  function openViewer(blob: Blob, alt: string, imgUuid?: string) {
+    setViewerBlob(blob);
+    setViewerAlt(alt);
+    setViewerSaveUuid(imgUuid ?? null);
+  }
+
+  async function saveAnnotatedImage(annotatedBlob: Blob) {
+    if (!viewerSaveUuid) return;
+    const now = new Date().toISOString();
+    // Generate a new thumbnail from the annotated image.
+    let newThumb = "";
+    try { newThumb = await quickThumbnail(annotatedBlob); } catch {}
+    await db.images.update(viewerSaveUuid, {
+      blob: annotatedBlob,
+      thumbnail_data_url: newThumb,
+      updated_at: now,
+      sync_status: "pending",
+      binary_synced: false,
+    });
+    // Mark parent item as updated too.
+    const img = await db.images.get(viewerSaveUuid);
+    if (img) {
+      await db.items.update(img.item_client_uuid, { updated_at: now, sync_status: "pending" });
+    }
+    showToast("Annotated image saved");
   }
 
   async function onFilesChosen(e: React.ChangeEvent<HTMLInputElement>) {
@@ -306,7 +337,7 @@ export default function SurveyPage() {
       {/* Existing items list */}
       <h3 style={{ fontSize: 15, color: "var(--brand)", margin: "16px 0 6px" }}>Items ({visibleItems.length})</h3>
       {visibleItems.map((it) => (
-        <ItemRowCard key={it.client_uuid} item={it} />
+        <ItemRowCard key={it.client_uuid} item={it} openViewer={openViewer} />
       ))}
 
       {/* Floating capture button */}
@@ -329,11 +360,20 @@ export default function SurveyPage() {
       />
 
       {toast && <div className="toast">{toast}</div>}
+
+      {viewerBlob && (
+        <ImageViewer
+          blob={viewerBlob}
+          alt={viewerAlt}
+          onClose={() => { setViewerBlob(null); setViewerSaveUuid(null); }}
+          onSave={saveAnnotatedImage}
+        />
+      )}
     </div>
   );
 }
 
-function ItemRowCard({ item }: { item: ItemRow }) {
+function ItemRowCard({ item, openViewer }: { item: ItemRow; openViewer: (blob: Blob, alt: string, imgUuid?: string) => void }) {
   const images = useLiveQuery(
     () => db.images.where("item_client_uuid").equals(item.client_uuid).reverse().sortBy("sort_order"),
     [item.client_uuid]
@@ -460,7 +500,7 @@ function ItemRowCard({ item }: { item: ItemRow }) {
           <div className="thumbs" style={{ marginBottom: 8 }}>
             {visibleImgs.map((img) => (
               <div key={img.client_uuid} style={{ position: "relative" }}>
-                <ThumbImg blob={img.blob} dataUrl={img.thumbnail_data_url} alt={item.label} />
+                <ThumbImg blob={img.blob} dataUrl={img.thumbnail_data_url} alt={item.label} onClick={() => openViewer(img.blob, item.label, img.client_uuid)} />
                 <button
                   className="btn btn-danger"
                   style={{ position: "absolute", top: -4, right: -4, padding: "2px 6px", fontSize: 12, borderRadius: "50%", minWidth: 24 }}
@@ -529,6 +569,7 @@ function ItemRowCard({ item }: { item: ItemRow }) {
               blob={img.blob}
               dataUrl={img.thumbnail_data_url}
               alt={item.label}
+              onClick={() => openViewer(img.blob, item.label, img.client_uuid)}
             />
           ))}
         </div>

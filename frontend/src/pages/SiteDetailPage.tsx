@@ -1,8 +1,11 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "../db";
-import { useState } from "react";
+import { db, type ImageRow, type ItemRow } from "../db";
+import { useEffect, useRef, useState } from "react";
+import { v7 as uuidv7 } from "uuid";
+import { processImage, quickThumbnail } from "../lib/image";
 import ThumbImg from "../components/ThumbImg";
+import ImageViewer from "../components/ImageViewer";
 
 const DEFAULT_ORDER = ["Cameras", "Access Control", "Intercom", "Air Quality", "Alarms", "Workplace", "Other"];
 
@@ -24,6 +27,41 @@ export default function SiteDetailPage() {
     [items]
   );
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [editingItem, setEditingItem] = useState<string | null>(null);
+  const [viewerBlob, setViewerBlob] = useState<Blob | null>(null);
+  const [viewerAlt, setViewerAlt] = useState("");
+  const [viewerSaveUuid, setViewerSaveUuid] = useState<string | null>(null);
+  const [toast, setToast] = useState("");
+
+  function showToast(msg: string) {
+    setToast(msg);
+    setTimeout(() => setToast(""), 1800);
+  }
+
+  function openViewer(blob: Blob, alt: string, imgUuid?: string) {
+    setViewerBlob(blob);
+    setViewerAlt(alt);
+    setViewerSaveUuid(imgUuid ?? null);
+  }
+
+  async function saveAnnotatedImage(annotatedBlob: Blob) {
+    if (!viewerSaveUuid) return;
+    const now = new Date().toISOString();
+    let newThumb = "";
+    try { newThumb = await quickThumbnail(annotatedBlob); } catch {}
+    await db.images.update(viewerSaveUuid, {
+      blob: annotatedBlob,
+      thumbnail_data_url: newThumb,
+      updated_at: now,
+      sync_status: "pending",
+      binary_synced: false,
+    });
+    const img = await db.images.get(viewerSaveUuid);
+    if (img) {
+      await db.items.update(img.item_client_uuid, { updated_at: now, sync_status: "pending" });
+    }
+    showToast("Annotated image saved");
+  }
 
   if (!site) return <div className="empty">Loading…</div>;
 
@@ -77,7 +115,7 @@ export default function SiteDetailPage() {
 
         <div className="row" style={{ marginTop: 12, flexWrap: "wrap" }}>
           <Link to={`/sites/${site.client_uuid}/survey`} className="btn btn-primary">+ Add Items</Link>
-          <Link to={`/sites/${id}/edit`} className="btn">Edit</Link>
+          <Link to={`/sites/${id}/edit`} className="btn">Edit Site</Link>
           <Link to={`/sites/${id}/export`} className="btn">Export</Link>
           <button className="btn btn-danger" onClick={deleteSite}>Delete</button>
         </div>
@@ -98,35 +136,228 @@ export default function SiteDetailPage() {
             {byCat.get(cat)!.map((it) => {
               const imgs = imgByItem.get(it.client_uuid) ?? [];
               const isOpen = expanded === it.client_uuid;
+              const isEditing = editingItem === it.client_uuid;
               return (
-                <div key={it.client_uuid} className="item-card" onClick={() => setExpanded(isOpen ? null : it.client_uuid)}>
-                  <div className="row between">
-                    <strong>{it.label || "Untitled"}</strong>
-                    {it.sync_status === "pending" && <span className="badge badge-pending">pending</span>}
-                  </div>
-                  {it.notes && <div className="notes-preview">{it.notes}</div>}
-                  {imgs.length > 0 && (
-                    <div className="thumbs">
-                      {imgs.slice(0, isOpen ? imgs.length : 4).map((img) => (
-                        <ThumbImg
-                          key={img.client_uuid}
-                          blob={img.blob}
-                          dataUrl={img.thumbnail_data_url}
-                          alt={it.label}
-                        />
-                      ))}
-                    </div>
-                  )}
-                  {isOpen && (
-                    <div className="small muted" style={{ marginTop: 8 }}>
-                      {imgs.length} photo{imgs.length !== 1 ? "s" : ""}
-                    </div>
-                  )}
-                </div>
+                <ItemDisplay
+                  key={it.client_uuid}
+                  item={it}
+                  imgs={imgs}
+                  isOpen={isOpen}
+                  isEditing={isEditing}
+                  onToggle={() => setExpanded(isOpen ? null : it.client_uuid)}
+                  onEdit={() => { setEditingItem(it.client_uuid); setExpanded(it.client_uuid); }}
+                  onCancelEdit={() => setEditingItem(null)}
+                  openViewer={openViewer}
+                />
               );
             })}
           </div>
         ))
+      )}
+
+      {toast && <div className="toast">{toast}</div>}
+
+      {viewerBlob && (
+        <ImageViewer
+          blob={viewerBlob}
+          alt={viewerAlt}
+          onClose={() => { setViewerBlob(null); setViewerSaveUuid(null); }}
+          onSave={saveAnnotatedImage}
+        />
+      )}
+    </div>
+  );
+}
+
+function ItemDisplay({
+  item,
+  imgs,
+  isOpen,
+  isEditing,
+  onToggle,
+  onEdit,
+  onCancelEdit,
+  openViewer,
+}: {
+  item: ItemRow;
+  imgs: ImageRow[];
+  isOpen: boolean;
+  isEditing: boolean;
+  onToggle: () => void;
+  onEdit: () => void;
+  onCancelEdit: () => void;
+  openViewer: (blob: Blob, alt: string, imgUuid?: string) => void;
+}) {
+  const [editLabel, setEditLabel] = useState(item.label);
+  const [editNotes, setEditNotes] = useState(item.notes);
+  const [addingPhotos, setAddingPhotos] = useState(false);
+  const editFileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!isEditing) {
+      setEditLabel(item.label);
+      setEditNotes(item.notes);
+    }
+  }, [item.label, item.notes, isEditing]);
+
+  const visibleImgs = imgs.filter((i) => !i.deleted);
+
+  async function saveEdit() {
+    const now = new Date().toISOString();
+    await db.items.update(item.client_uuid, {
+      label: editLabel.trim(),
+      notes: editNotes.trim(),
+      updated_at: now,
+      sync_status: "pending",
+    });
+    onCancelEdit();
+  }
+
+  async function deleteItem() {
+    if (!confirm(`Delete "${item.label || "this item"}"?`)) return;
+    const now = new Date().toISOString();
+    await db.items.update(item.client_uuid, { deleted: true, updated_at: now, sync_status: "pending" });
+    onCancelEdit();
+  }
+
+  async function deleteImage(imgUuid: string) {
+    const now = new Date().toISOString();
+    await db.images.update(imgUuid, { deleted: true, updated_at: now, sync_status: "pending" });
+    await db.items.update(item.client_uuid, { updated_at: now, sync_status: "pending" });
+  }
+
+  async function onAddPhotos(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
+    if (editFileRef.current) editFileRef.current.value = "";
+    setAddingPhotos(true);
+    try {
+      const now = new Date().toISOString();
+      const existingCount = visibleImgs.length;
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const uuid = uuidv7();
+        let quickThumb = "";
+        try { quickThumb = await quickThumbnail(file); } catch {}
+        const img: ImageRow = {
+          client_uuid: uuid,
+          item_client_uuid: item.client_uuid,
+          blob: file,
+          thumbnail_data_url: quickThumb,
+          filename: `${uuid}.jpg`,
+          mime: file.type || "image/jpeg",
+          width: 0,
+          height: 0,
+          taken_at: now,
+          sha256: "",
+          sort_order: existingCount + i,
+          created_at: now,
+          updated_at: now,
+          sync_status: "pending",
+          deleted: false,
+          binary_synced: false,
+        };
+        await db.images.add(img);
+        processImage(file, file.type || "image/jpeg").then((processed) => {
+          db.images.update(uuid, {
+            blob: processed.blob,
+            thumbnail_data_url: processed.thumbnailDataUrl,
+            width: processed.width,
+            height: processed.height,
+          });
+        }).catch((err) => console.error("Photo processing failed:", err));
+      }
+      await db.items.update(item.client_uuid, { updated_at: now, sync_status: "pending" });
+    } finally {
+      setAddingPhotos(false);
+    }
+  }
+
+  if (isEditing) {
+    return (
+      <div className="item-card" onClick={(e) => e.stopPropagation()}>
+        <div className="row between" style={{ marginBottom: 8 }}>
+          <span className="badge badge-cat">{item.category}</span>
+          <button className="btn btn-ghost" style={{ padding: "2px 8px", fontSize: 13 }} onClick={onCancelEdit}>Cancel</button>
+        </div>
+        <div className="field">
+          <label>Label / Location</label>
+          <input value={editLabel} onChange={(e) => setEditLabel(e.target.value)} placeholder="e.g. Front door, Camera 12" />
+        </div>
+        <div className="field">
+          <label>Notes</label>
+          <textarea value={editNotes} onChange={(e) => setEditNotes(e.target.value)} placeholder="Notes…" />
+        </div>
+        {visibleImgs.length > 0 && (
+          <div className="thumbs" style={{ marginBottom: 8 }}>
+            {visibleImgs.map((img) => (
+              <div key={img.client_uuid} style={{ position: "relative" }}>
+                <ThumbImg blob={img.blob} dataUrl={img.thumbnail_data_url} alt={item.label} onClick={() => openViewer(img.blob, item.label, img.client_uuid)} />
+                <button
+                  className="btn btn-danger"
+                  style={{ position: "absolute", top: -4, right: -4, padding: "2px 6px", fontSize: 12, borderRadius: "50%", minWidth: 24 }}
+                  onClick={(e) => { e.stopPropagation(); deleteImage(img.client_uuid); }}
+                  title="Remove photo"
+                >×</button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="row" style={{ gap: 8, marginBottom: 8 }}>
+          <button
+            className="btn btn-ghost"
+            onClick={() => editFileRef.current?.click()}
+            disabled={addingPhotos}
+            style={{ flex: 1 }}
+          >
+            {addingPhotos ? "Adding…" : "📷 Add Photos"}
+          </button>
+          <input
+            ref={editFileRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            multiple
+            className="hidden-file"
+            onChange={onAddPhotos}
+          />
+          <button className="btn btn-primary" onClick={saveEdit} style={{ flex: 1 }}>✓ Save</button>
+        </div>
+        <button className="btn btn-danger btn-block" onClick={deleteItem}>Delete item</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="item-card" onClick={onToggle}>
+      <div className="row between">
+        <strong>{item.label || "Untitled"}</strong>
+        <div className="row" style={{ gap: 6 }}>
+          {item.sync_status === "pending" && <span className="badge badge-pending">pending</span>}
+          <button
+            className="btn btn-ghost"
+            style={{ padding: "2px 8px", fontSize: 13 }}
+            onClick={(e) => { e.stopPropagation(); onEdit(); }}
+            title="Edit item"
+          >Edit</button>
+        </div>
+      </div>
+      {item.notes && <div className="notes-preview">{item.notes}</div>}
+      {visibleImgs.length > 0 && (
+        <div className="thumbs">
+          {visibleImgs.slice(0, isOpen ? visibleImgs.length : 4).map((img) => (
+            <ThumbImg
+              key={img.client_uuid}
+              blob={img.blob}
+              dataUrl={img.thumbnail_data_url}
+              alt={item.label}
+              onClick={() => openViewer(img.blob, item.label, img.client_uuid)}
+            />
+          ))}
+        </div>
+      )}
+      {isOpen && visibleImgs.length > 4 && (
+        <div className="small muted" style={{ marginTop: 4 }}>{visibleImgs.length} photos total</div>
       )}
     </div>
   );

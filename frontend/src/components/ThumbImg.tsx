@@ -5,6 +5,7 @@ interface ThumbImgProps {
   dataUrl?: string;
   alt: string;
   className?: string;
+  onClick?: () => void;
 }
 
 /**
@@ -13,7 +14,7 @@ interface ThumbImgProps {
  * to avoid the memory leak and render issues that come from calling
  * URL.createObjectURL directly in JSX.
  */
-export default function ThumbImg({ blob, dataUrl, alt, className }: ThumbImgProps) {
+export default function ThumbImg({ blob, dataUrl, alt, className, onClick }: ThumbImgProps) {
   const [objectUrl, setObjectUrl] = useState<string>("");
 
   useEffect(() => {
@@ -33,5 +34,13 @@ export default function ThumbImg({ blob, dataUrl, alt, className }: ThumbImgProp
 
   const src = dataUrl || objectUrl;
   if (!src) return null;
-  return <img src={src} alt={alt} className={className} />;
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className={className}
+      onClick={onClick}
+      style={onClick ? { cursor: "pointer" } : undefined}
+    />
+  );
 }
