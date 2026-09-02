@@ -3,7 +3,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db, type ImageRow, type ItemRow } from "../db";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { v7 as uuidv7 } from "uuid";
-import { processImage } from "../lib/image";
+import { processImage, quickThumbnail } from "../lib/image";
 import { useSpeechRecognition } from "../hooks/useSpeechRecognition";
 import { useAudioRecorder } from "../hooks/useAudioRecorder";
 import ThumbImg from "../components/ThumbImg";
@@ -24,7 +24,8 @@ export default function SurveyPage() {
   const [label, setLabel] = useState("");
   const [notes, setNotes] = useState("");
   const [pendingPhotos, setPendingPhotos] = useState<{ blob: Blob; thumb: string; uuid: string }[]>([]);
-  const [busy, setBusy] = useState(false);
+  const [processingPhotos, setProcessingPhotos] = useState(false);
+  const [savingItem, setSavingItem] = useState(false);
   const [toast, setToast] = useState("");
 
   const speech = useSpeechRecognition();
@@ -53,23 +54,41 @@ export default function SurveyPage() {
   async function onFilesChosen(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
     if (files.length === 0) return;
-    setBusy(true);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    setProcessingPhotos(true);
     try {
       for (const file of files) {
-        const processed = await processImage(file, file.type || "image/jpeg");
+        const uuid = uuidv7();
+        // Show a quick thumbnail immediately for instant feedback.
+        let quickThumb = "";
+        try {
+          quickThumb = await quickThumbnail(file);
+        } catch {}
         setPendingPhotos((p) => [...p, {
-          blob: processed.blob,
-          thumb: processed.thumbnailDataUrl,
-          uuid: uuidv7(),
+          blob: file,  // temporary — replaced after processing
+          thumb: quickThumb,
+          uuid,
         }]);
+        // Process the full image in the background (downscale + better thumb).
+        // This doesn't block the UI — the user can add more photos, type notes, etc.
+        processImage(file, file.type || "image/jpeg").then((processed) => {
+          setPendingPhotos((p) =>
+            p.map((ph) => ph.uuid === uuid ? {
+              ...ph,
+              blob: processed.blob,
+              thumb: processed.thumbnailDataUrl,
+            } : ph)
+          );
+        }).catch((err) => {
+          console.error("Photo processing failed:", err);
+        });
       }
       showToast(`${files.length} photo${files.length > 1 ? "s" : ""} added`);
     } catch (err) {
-      console.error("Photo processing failed:", err);
-      showToast("Photo processing failed");
+      console.error("Photo add failed:", err);
+      showToast("Photo add failed");
     } finally {
-      setBusy(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      setProcessingPhotos(false);
     }
   }
 
@@ -79,7 +98,14 @@ export default function SurveyPage() {
       showToast("Add a photo, label, or note first");
       return;
     }
-    setBusy(true);
+    // Wait for any photos still processing in the background.
+    // Check if any pending photo's blob is still the raw File (not yet processed).
+    const stillProcessing = pendingPhotos.some((p) => p.blob instanceof File);
+    if (stillProcessing) {
+      showToast("Processing photos — try again in a moment");
+      return;
+    }
+    setSavingItem(true);
     try {
       const now = new Date().toISOString();
       const itemUuid = uuidv7();
@@ -127,7 +153,7 @@ export default function SurveyPage() {
       setNotes("");
       showToast("Item saved");
     } finally {
-      setBusy(false);
+      setSavingItem(false);
     }
   }
 
@@ -223,6 +249,9 @@ export default function SurveyPage() {
             <strong>New item · {pendingPhotos.length} photo{pendingPhotos.length > 1 ? "s" : ""}</strong>
             <button className="btn btn-ghost btn-danger" style={{ padding: "4px 8px" }} onClick={() => setPendingPhotos([])}>Clear</button>
           </div>
+          {processingPhotos && (
+            <div className="small muted" style={{ marginBottom: 4 }}>Processing photos…</div>
+          )}
           <div className="thumbs">
             {pendingPhotos.map((p) => (
               <img key={p.uuid} src={p.thumb} alt="pending" />
@@ -262,8 +291,8 @@ export default function SurveyPage() {
         >
           {speech.listening || recorder.recording ? "⏹ Stop" : "🎤 Voice"}
         </button>
-        <button className="btn btn-primary" onClick={saveItem} disabled={busy} style={{ flex: 1 }}>
-          {busy ? "Saving…" : "✓ Save Item"}
+        <button className="btn btn-primary" onClick={saveItem} disabled={savingItem} style={{ flex: 1 }}>
+          {savingItem ? "Saving…" : "✓ Save Item"}
         </button>
       </div>
       {speech.error && <div className="small" style={{ color: "var(--danger)", marginBottom: 8 }}>{speech.error}</div>}
@@ -284,7 +313,7 @@ export default function SurveyPage() {
       <button
         className="capture-fab"
         onClick={() => fileInputRef.current?.click()}
-        disabled={busy}
+        disabled={savingItem}
         title="Take photo"
       >
         📷

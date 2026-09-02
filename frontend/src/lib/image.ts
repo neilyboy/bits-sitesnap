@@ -11,6 +11,40 @@ export interface ProcessedImage {
 const MAX_DIM = 1920;
 const THUMB_DIM = 200;
 
+/**
+ * Quick thumbnail from the raw file — used for instant preview.
+ * Loads the image, draws it small (200px), returns a data URL.
+ * Much faster than processImage() because it skips the full-res downscale.
+ */
+export async function quickThumbnail(file: Blob): Promise<string> {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = reject;
+      i.src = url;
+    });
+    const sw = img.naturalWidth || img.width;
+    const sh = img.naturalHeight || img.height;
+    let w = THUMB_DIM;
+    let h = THUMB_DIM;
+    if (sw > sh) {
+      h = Math.round((THUMB_DIM / sw) * sh);
+    } else {
+      w = Math.round((THUMB_DIM / sh) * sw);
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (ctx) ctx.drawImage(img, 0, 0, w, h);
+    return canvas.toDataURL("image/jpeg", 0.7);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 export async function processImage(file: Blob, mime = "image/jpeg"): Promise<ProcessedImage> {
   const bitmap = await loadBitmap(file);
   const oriented = await normalizeOrientation(file, bitmap);
