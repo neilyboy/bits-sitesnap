@@ -3,6 +3,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db, getSetting, setSetting } from "../db";
 import { api } from "../lib/api";
 import { syncNow } from "../lib/sync";
+import { canSaveToCameraRoll } from "../lib/share";
 import { useState } from "react";
 
 export default function SettingsPage() {
@@ -11,6 +12,7 @@ export default function SettingsPage() {
   const lastSync = useLiveQuery(() => getSetting("last_sync_at", ""), []);
   const syncLog = useLiveQuery(() => db.sync_log.reverse().limit(20).toArray(), []);
   const categories = useLiveQuery(() => db.categories.orderBy("sort_order").toArray(), []);
+  const saveToGallery = useLiveQuery(() => getSetting("save_to_gallery", "0"), []);
   const [newCat, setNewCat] = useState("");
   const [oldPin, setOldPin] = useState("");
   const [newPin, setNewPin] = useState("");
@@ -127,6 +129,34 @@ export default function SettingsPage() {
         {resyncMsg && (
           <div className="small" style={{ marginTop: 8, color: resyncMsg.startsWith("Error") || resyncMsg.startsWith("Resync failed") ? "var(--danger)" : "var(--success)" }}>
             {resyncMsg}
+          </div>
+        )}
+      </div>
+
+      <div className="card">
+        <h3 style={{ marginTop: 0, fontSize: 15 }}>Photos</h3>
+        {canSaveToCameraRoll() ? (
+          <>
+            <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={saveToGallery === "1"}
+                onChange={async (e) => {
+                  await setSetting("save_to_gallery", e.target.checked ? "1" : "0");
+                }}
+                style={{ width: 20, height: 20 }}
+              />
+              <span>Also save photos to camera roll</span>
+            </label>
+            <div className="small muted" style={{ marginTop: 6 }}>
+              When enabled, each photo you take will also be shared to your phone's
+              Photos app via the share sheet. You'll need to tap "Save Image" each time
+              (PWAs can't save silently). This is useful for keeping a backup in your camera roll.
+            </div>
+          </>
+        ) : (
+          <div className="small muted">
+            Saving to camera roll is not supported on this device/browser.
           </div>
         )}
       </div>

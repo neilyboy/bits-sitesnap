@@ -1,6 +1,6 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
-import { db, type ImageRow, type ItemRow } from "../db";
+import { db, getSetting, type ImageRow, type ItemRow } from "../db";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { v7 as uuidv7 } from "uuid";
 import { processImage, quickThumbnail } from "../lib/image";
@@ -8,6 +8,7 @@ import { useSpeechRecognition } from "../hooks/useSpeechRecognition";
 import { useAudioRecorder } from "../hooks/useAudioRecorder";
 import ThumbImg from "../components/ThumbImg";
 import ImageViewer from "../components/ImageViewer";
+import { saveToCameraRoll } from "../lib/share";
 
 const DEFAULT_CATEGORIES = ["Cameras", "Access Control", "Intercom", "Air Quality", "Alarms", "Workplace", "Other"];
 
@@ -89,6 +90,10 @@ export default function SurveyPage() {
     if (files.length === 0) return;
     if (fileInputRef.current) fileInputRef.current.value = "";
     setProcessingPhotos(true);
+
+    // Check if camera roll save is enabled
+    const saveToGallery = await getSetting("save_to_gallery", "0");
+
     try {
       for (const file of files) {
         const uuid = uuidv7();
@@ -115,6 +120,14 @@ export default function SurveyPage() {
         }).catch((err) => {
           console.error("Photo processing failed:", err);
         });
+
+        // Also save to camera roll if enabled (Web Share API)
+        if (saveToGallery === "1") {
+          // Don't await — we don't want to block the capture flow
+          saveToCameraRoll(file, `${site?.business_name || "SiteSnap"}_${uuid}.jpg`).then((ok) => {
+            if (!ok) showToast("Could not save to camera roll");
+          });
+        }
       }
       showToast(`${files.length} photo${files.length > 1 ? "s" : ""} added`);
     } catch (err) {
