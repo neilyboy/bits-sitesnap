@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, getSetting } from "./db";
-import { isSyncing, pendingCount, subscribeSync, syncNow } from "./lib/sync";
+import { isSyncing, pendingCount, subscribeSync, syncNow, initAutoSync, setAutoSyncEnabled } from "./lib/sync";
 import { IconSettings, IconSync, IconCloud, IconCloudOff } from "./components/Icons";
 
 export default function App({ children }: { children: ReactNode }) {
@@ -16,6 +16,12 @@ export default function App({ children }: { children: ReactNode }) {
   // Re-render when sync state changes.
   useEffect(() => {
     const unsub = subscribeSync(() => setTick((t) => t + 1));
+    // Initialize auto-sync (periodic timer + online/visibility listeners)
+    initAutoSync();
+    // Respect saved auto-sync setting
+    getSetting("auto_sync", "1").then((v) => {
+      setAutoSyncEnabled(v !== "0");
+    });
     return unsub;
   }, []);
 

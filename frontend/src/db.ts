@@ -152,6 +152,28 @@ class SiteSnapDB extends Dexie {
 
 export const db = new SiteSnapDB();
 
+// ---- Auto-sync scheduling ----
+// After any create/update/delete on syncable tables, schedule a debounced
+// auto-sync. The actual sync logic lives in sync.ts and checks online
+// status, auth, etc. before firing.
+let _scheduleAutoSync: (() => void) | null = null;
+
+/** Called by sync.ts to register its auto-sync scheduler. */
+export function _registerAutoSyncScheduler(fn: () => void): void {
+  _scheduleAutoSync = fn;
+}
+
+function _hookAutoSync() {
+  if (_scheduleAutoSync) _scheduleAutoSync();
+}
+
+// Register Dexie hooks on all syncable tables
+for (const table of ["sites", "items", "images", "audio"] as const) {
+  db[table].hook("creating", _hookAutoSync);
+  db[table].hook("updating", _hookAutoSync);
+  db[table].hook("deleting", _hookAutoSync);
+}
+
 // ---- Setting helpers ----
 export async function getSetting(key: string, fallback = ""): Promise<string> {
   const row = await db.settings.get(key);

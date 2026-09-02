@@ -8,6 +8,7 @@ import {
   getSetting,
   logSync,
   setSetting,
+  _registerAutoSyncScheduler,
 } from "../db";
 import type {
   AudioMetaDTO,
@@ -20,6 +21,15 @@ import type {
 let syncing = false;
 let lastError = "";
 const listeners = new Set<() => void>();
+
+// ---- Auto-sync ----
+let autoSyncEnabled = true;
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+let periodicTimer: ReturnType<typeof setInterval> | null = null;
+let consecutiveFailures = 0;
+const DEBOUNCE_MS = 3000;        // wait 3s after last change before syncing
+const PERIODIC_INTERVAL_MS = 60000; // check every 60s as a safety net
+const MAX_BACKOFF_MS = 5 * 60 * 1000; // max 5 min backoff
 
 export function subscribeSync(fn: () => void): () => void {
   listeners.add(fn);
@@ -37,6 +47,95 @@ export function isSyncing() {
 export function getLastError() {
   return lastError;
 }
+
+/**
+ * Schedule a debounced auto-sync. Call this after any local change
+ * (site/item/image create/update/delete). The sync will fire after
+ * DEBOUNCE_MS of inactivity, and only if online + authenticated.
+ */
+export function scheduleAutoSync(): void {
+  if (!autoSyncEnabled) return;
+  if (debounceTimer) clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    debounceTimer = null;
+    void autoSync();
+  }, DEBOUNCE_MS);
+}
+
+/**
+ * Internal auto-sync — checks preconditions and backs off on failure.
+ */
+async function autoSync(): Promise<void> {
+  if (syncing) return;
+  if (!navigator.onLine) return;
+  // Check if there's anything to sync
+  try {
+    const count = await pendingCount();
+    if (count.total === 0) return;
+  } catch {
+    return;
+  }
+  // Check if authenticated
+  const token = await getSetting("auth_token", "");
+  if (!token) return;
+
+  const result = await syncNow();
+  if (result.ok) {
+    consecutiveFailures = 0;
+  } else {
+    consecutiveFailures++;
+    // Exponential backoff: schedule a retry after increasing delay
+    const backoff = Math.min(
+      MAX_BACKOFF_MS,
+      Math.pow(2, consecutiveFailures) * 5000
+    );
+    if (debounceTimer) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      debounceTimer = null;
+      void autoSync();
+    }, backoff);
+  }
+}
+
+/**
+ * Start the periodic sync timer and online event listener.
+ * Call once at app startup.
+ */
+export function initAutoSync(): void {
+  // Periodic safety-net sync
+  if (periodicTimer) clearInterval(periodicTimer);
+  periodicTimer = setInterval(() => {
+    void autoSync();
+  }, PERIODIC_INTERVAL_MS);
+
+  // Sync when coming back online
+  window.addEventListener("online", () => {
+    void autoSync();
+  });
+
+  // Sync when the page becomes visible again (user returned to tab)
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      void autoSync();
+    }
+  });
+}
+
+export function setAutoSyncEnabled(enabled: boolean): void {
+  autoSyncEnabled = enabled;
+  if (!enabled && debounceTimer) {
+    clearTimeout(debounceTimer);
+    debounceTimer = null;
+  }
+}
+
+export function isAutoSyncEnabled(): boolean {
+  return autoSyncEnabled;
+}
+
+// Register our scheduler with the DB hooks so any create/update/delete
+// on sites/items/images/audio triggers a debounced auto-sync.
+_registerAutoSyncScheduler(scheduleAutoSync);
 
 export async function pendingCount(): Promise<{
   sites: number;
