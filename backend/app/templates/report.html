@@ -92,40 +92,33 @@
     padding-bottom: 4pt;
     border-bottom: 1.5pt solid var(--brand);
   }
-  .summary-grid {
-    display: grid;
-    grid-template-columns: 28pt 1.2fr 1.4fr 3fr 44pt;
-    border: 0.5pt solid var(--border);
-    border-radius: 3pt;
-    overflow: hidden;
+  table.summary-table {
+    width: 100%;
+    border-collapse: collapse;
     font-size: 9.5pt;
+    table-layout: fixed;
   }
-  .summary-row {
-    display: grid;
-    grid-template-columns: 28pt 1.2fr 1.4fr 3fr 44pt;
-    grid-column: 1 / -1;
-  }
-  .summary-row div {
+  table.summary-table th, table.summary-table td {
+    border: 0.5pt solid var(--border);
     padding: 5pt 6pt;
-    border-right: 0.5pt solid var(--border);
-    border-bottom: 0.5pt solid var(--border);
+    text-align: left;
     vertical-align: top;
-    min-height: 22pt;
   }
-  .summary-row div:last-child { border-right: none; }
-  .summary-row.header {
+  table.summary-table th {
     background: var(--bg-alt);
     font-weight: 700;
     color: #333;
   }
-  .summary-row:nth-child(even):not(.header) { background: var(--bg-alt); }
-  .summary-row div.num, .summary-row div.photos {
+  table.summary-table tr:nth-child(even) { background: var(--bg-alt); }
+  table.summary-table th.num, table.summary-table td.num { text-align: center; width: 30pt; }
+  table.summary-table th.cat, table.summary-table td.cat { width: 85pt; }
+  table.summary-table th.label, table.summary-table td.label { width: 95pt; }
+  table.summary-table th.notes, table.summary-table td.notes { width: 188pt; }
+  table.summary-table th.photos, table.summary-table td.photos {
     text-align: center;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 50pt;
+    color: #555;
   }
-  .summary-row div.photos { color: #555; }
 
   /* ---- Items ---- */
   .category { padding: 14pt 36pt 0; }
@@ -243,24 +236,28 @@
 
 <section class="summary">
   <h2>Summary</h2>
-  <div class="summary-grid">
-    <div class="summary-row header">
-      <div class="num">#</div>
-      <div class="cat">Category</div>
-      <div class="label">Label</div>
-      <div class="notes">Notes</div>
-      <div class="photos">Photos</div>
-    </div>
-    {% for it in items %}
-    <div class="summary-row">
-      <div class="num">{{ loop.index }}</div>
-      <div class="cat">{{ it.category }}</div>
-      <div class="label">{{ it.label or "—" }}</div>
-      <div class="notes">{{ (it.notes[:90] + '…') if it.notes|length > 90 else it.notes or "—" }}</div>
-      <div class="photos">{{ it.images|length }}</div>
-    </div>
-    {% endfor %}
-  </div>
+  <table class="summary-table">
+    <thead>
+      <tr>
+        <th class="num">#</th>
+        <th class="cat">Category</th>
+        <th class="label">Label</th>
+        <th class="notes">Notes</th>
+        <th class="photos">Photos</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for it in items %}
+      <tr>
+        <td class="num">{{ loop.index }}</td>
+        <td class="cat">{{ it.category }}</td>
+        <td class="label">{{ it.label or "—" }}</td>
+        <td class="notes">{{ (it.notes[:90] + '…') if it.notes|length > 90 else it.notes or "—" }}</td>
+        <td class="photos">{{ it.images|length }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </section>
 
 {% for cat in categories_in_order %}
