@@ -22,9 +22,15 @@ interface Annotation {
   endY: number;
   points: { x: number; y: number }[];
   text: string;
+  lineWidth: number;   // stroke width in image pixels (arrow/rect/freehand)
+  fontSize: number;    // font size in image pixels (text)
 }
 
 const COLORS: Color[] = ["#ff0000", "#ffff00", "#00ff00", "#ffffff", "#000000"];
+
+// Default line width & font size as a fraction of image width.
+const DEFAULT_LINE_WIDTH = (nw: number) => Math.max(3, nw / 400);
+const DEFAULT_FONT_SIZE = (nw: number) => Math.max(20, nw / 40);
 
 let annIdCounter = 1;
 
@@ -71,8 +77,7 @@ export default function ImageViewer({ blob, serverUrl, alt, onClose, onSave }: I
         try {
           const token = await getSetting("auth_token", "");
           let base = await getSetting("server_url", "");
-          base = base ? base.replace(/\/$/, "") : ""; // strip trailing slash like api.ts
-          // Fix old stale URLs that contain localhost/127.0.0.1
+          base = base ? base.replace(/\/$/, "") : "";
           let effectiveServerUrl = serverUrl;
           if (effectiveServerUrl.startsWith("http") &&
               (effectiveServerUrl.includes("://localhost") || effectiveServerUrl.includes("://127.0.0.1"))) {
@@ -140,13 +145,10 @@ export default function ImageViewer({ blob, serverUrl, alt, onClose, onSave }: I
 
   // Hit test: check if a screen point is on an annotation
   const hitTestAnn = useCallback((ann: Annotation, imgX: number, imgY: number): "body" | "start" | "end" | null => {
-    const tol = 20 / zoom; // 20px tolerance in image coords
+    const tol = 20 / zoom;
     if (ann.tool === "arrow") {
-      // Check start handle
       if (Math.hypot(imgX - ann.startX, imgY - ann.startY) < tol) return "start";
-      // Check end handle
       if (Math.hypot(imgX - ann.endX, imgY - ann.endY) < tol) return "end";
-      // Check line (point-to-line distance)
       const d = pointToLineDist(imgX, imgY, ann.startX, ann.startY, ann.endX, ann.endY);
       if (d < tol) return "body";
     } else if (ann.tool === "rect") {
@@ -154,32 +156,26 @@ export default function ImageViewer({ blob, serverUrl, alt, onClose, onSave }: I
       const maxX = Math.max(ann.startX, ann.endX);
       const minY = Math.min(ann.startY, ann.endY);
       const maxY = Math.max(ann.startY, ann.endY);
-      // Check corners (start/end handles)
       if (Math.hypot(imgX - ann.startX, imgY - ann.startY) < tol) return "start";
       if (Math.hypot(imgX - ann.endX, imgY - ann.endY) < tol) return "end";
-      // Check edges
       const onEdge = (imgX > minX - tol && imgX < maxX + tol && imgY > minY - tol && imgY < maxY + tol) &&
                      (Math.abs(imgX - minX) < tol || Math.abs(imgX - maxX) < tol || Math.abs(imgY - minY) < tol || Math.abs(imgY - maxY) < tol);
       if (onEdge) return "body";
-      // Inside
       if (imgX > minX && imgX < maxX && imgY > minY && imgY < maxY) return "body";
     } else if (ann.tool === "freehand") {
-      // Check if near any point in the path
       for (const p of ann.points) {
         if (Math.hypot(imgX - p.x, imgY - p.y) < tol) return "body";
       }
     } else if (ann.tool === "text") {
-      const fontSize = Math.max(20, naturalW / 40);
-      const w = ann.text.length * fontSize * 0.6;
-      const h = fontSize;
+      const fs = ann.fontSize || DEFAULT_FONT_SIZE(naturalW);
+      const w = ann.text.length * fs * 0.6;
+      const h = fs;
       if (imgX >= ann.startX - tol && imgX <= ann.startX + w + tol && imgY >= ann.startY - h - tol && imgY <= ann.startY + tol) return "body";
-      // End handle for resize
       if (Math.hypot(imgX - (ann.startX + w), imgY - ann.startY) < tol * 1.5) return "end";
     }
     return null;
   }, [zoom, naturalW]);
 
-  // Find topmost annotation at a point
   const findAnnotationAt = useCallback((imgX: number, imgY: number): { ann: Annotation; part: "body" | "start" | "end" } | null => {
     for (let i = annotations.length - 1; i >= 0; i--) {
       const part = hitTestAnn(annotations[i], imgX, imgY);
@@ -217,7 +213,6 @@ export default function ImageViewer({ blob, serverUrl, alt, onClose, onSave }: I
     const ann = annotations.find((a) => a.id === selectedId);
     if (!ann) return;
 
-    // Draw selection handles in screen coords
     const handleSize = 12;
     ctx.fillStyle = "#2e7dd1";
     ctx.strokeStyle = "#fff";
@@ -235,12 +230,11 @@ export default function ImageViewer({ blob, serverUrl, alt, onClose, onSave }: I
       drawHandle(ann.startX, ann.startY);
       drawHandle(ann.endX, ann.endY);
     } else if (ann.tool === "text") {
-      const fontSize = Math.max(20, naturalW / 40);
-      const w = ann.text.length * fontSize * 0.6;
+      const fs = ann.fontSize || DEFAULT_FONT_SIZE(naturalW);
+      const w = ann.text.length * fs * 0.6;
       drawHandle(ann.startX, ann.startY);
       drawHandle(ann.startX + w, ann.startY);
     } else if (ann.tool === "freehand") {
-      // Draw handles at start and end
       if (ann.points.length > 0) {
         drawHandle(ann.points[0].x, ann.points[0].y);
         drawHandle(ann.points[ann.points.length - 1].x, ann.points[ann.points.length - 1].y);
@@ -263,7 +257,6 @@ export default function ImageViewer({ blob, serverUrl, alt, onClose, onSave }: I
     }
 
     if (tool === "select") {
-      // Check if we clicked on a handle of the selected annotation
       if (selectedId !== null) {
         const selAnn = annotations.find((a) => a.id === selectedId);
         if (selAnn) {
@@ -275,7 +268,6 @@ export default function ImageViewer({ blob, serverUrl, alt, onClose, onSave }: I
           }
         }
       }
-      // Check if we clicked on any annotation
       const hit = findAnnotationAt(x, y);
       if (hit) {
         setSelectedId(hit.ann.id);
@@ -300,6 +292,8 @@ export default function ImageViewer({ blob, serverUrl, alt, onClose, onSave }: I
         id: annIdCounter++, tool, color,
         startX: x, startY: y, endX: x, endY: y,
         points: [], text: "",
+        lineWidth: DEFAULT_LINE_WIDTH(naturalW),
+        fontSize: DEFAULT_FONT_SIZE(naturalW),
       };
       setAnnotations((a) => [...a, newAnn]);
       setEditingTextId(newAnn.id);
@@ -310,9 +304,9 @@ export default function ImageViewer({ blob, serverUrl, alt, onClose, onSave }: I
 
     // Drawing tools (arrow, rect, freehand)
     if (tool === "freehand") {
-      setDrawing({ id: annIdCounter++, tool, color, startX: x, startY: y, endX: x, endY: y, points: [{ x, y }], text: "" });
+      setDrawing({ id: annIdCounter++, tool, color, startX: x, startY: y, endX: x, endY: y, points: [{ x, y }], text: "", lineWidth: DEFAULT_LINE_WIDTH(naturalW), fontSize: DEFAULT_FONT_SIZE(naturalW) });
     } else {
-      setDrawing({ id: annIdCounter++, tool, color, startX: x, startY: y, endX: x, endY: y, points: [], text: "" });
+      setDrawing({ id: annIdCounter++, tool, color, startX: x, startY: y, endX: x, endY: y, points: [], text: "", lineWidth: DEFAULT_LINE_WIDTH(naturalW), fontSize: DEFAULT_FONT_SIZE(naturalW) });
     }
   }
 
@@ -346,8 +340,11 @@ export default function ImageViewer({ blob, serverUrl, alt, onClose, onSave }: I
         setAnnotations((arr) => arr.map((a) => {
           if (a.id !== orig.id) return a;
           if (a.tool === "text") {
-            // For text, resizing changes font size based on distance
-            return { ...a, endX: x, endY: y };
+            // For text, dragging the end handle changes font size
+            // based on distance from start
+            const dist = Math.hypot(x - a.startX, y - a.startY);
+            const newFs = Math.max(12, Math.min(naturalW / 5, dist * 1.5));
+            return { ...a, endX: x, endY: y, fontSize: newFs };
           }
           return { ...a, endX: x, endY: y };
         }));
@@ -371,7 +368,6 @@ export default function ImageViewer({ blob, serverUrl, alt, onClose, onSave }: I
       dragStart.current.ann = null;
     }
     if (drawing) {
-      // Don't add trivially small annotations
       const minSize = 5 / zoom;
       if (drawing.tool === "freehand" && drawing.points.length > 1) {
         setAnnotations((a) => [...a, drawing]);
@@ -434,13 +430,24 @@ export default function ImageViewer({ blob, serverUrl, alt, onClose, onSave }: I
     setSelectedId(null);
   }
 
+  // Update selected annotation's line width
+  function setSelectedLineWidth(lw: number) {
+    if (selectedId === null) return;
+    setAnnotations((arr) => arr.map((a) => a.id === selectedId ? { ...a, lineWidth: lw } : a));
+  }
+
+  // Update selected annotation's font size
+  function setSelectedFontSize(fs: number) {
+    if (selectedId === null) return;
+    setAnnotations((arr) => arr.map((a) => a.id === selectedId ? { ...a, fontSize: fs } : a));
+  }
+
   async function saveAnnotated() {
     if (!canvasRef.current) return;
     if (annotations.length === 0) { onClose(); return; }
-    // Temporarily deselect for clean render
     const prevSel = selectedId;
     setSelectedId(null);
-    await new Promise((r) => setTimeout(r, 50)); // let re-render happen
+    await new Promise((r) => setTimeout(r, 50));
     canvasRef.current.toBlob((annotatedBlob) => {
       setSelectedId(prevSel);
       if (annotatedBlob && onSave) onSave(annotatedBlob);
@@ -461,6 +468,8 @@ export default function ImageViewer({ blob, serverUrl, alt, onClose, onSave }: I
   const overlayStyle: React.CSSProperties = {
     position: "absolute", inset: 0, pointerEvents: "none", zIndex: 5,
   };
+
+  const selectedAnn = selectedId !== null ? annotations.find((a) => a.id === selectedId) : null;
 
   return (
     <div
@@ -526,6 +535,82 @@ export default function ImageViewer({ blob, serverUrl, alt, onClose, onSave }: I
         </div>
       )}
 
+      {/* Properties panel — shown when an annotation is selected */}
+      {selectedAnn && showToolbar && editingTextId === null && (
+        <div style={{
+          position: "absolute", bottom: "calc(64px + var(--safe-bottom))", left: "50%",
+          transform: "translateX(-50%)", zIndex: 15,
+          display: "flex", alignItems: "center", gap: 12,
+          background: "rgba(20,20,28,0.95)", border: "1px solid rgba(255,255,255,0.15)",
+          borderRadius: 12, padding: "10px 16px",
+          boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
+          maxWidth: "92vw", flexWrap: "wrap", justifyContent: "center",
+        }}>
+          {/* Line width control (arrow/rect/freehand) */}
+          {selectedAnn.tool !== "text" && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ color: "#aaa", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>Width</span>
+              <button
+                onClick={() => setSelectedLineWidth(Math.max(1, (selectedAnn.lineWidth || DEFAULT_LINE_WIDTH(naturalW)) - Math.max(1, naturalW / 800)))}
+                style={stepperBtnStyle}
+              >−</button>
+              <div style={{
+                width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center",
+                borderRadius: 6, background: "rgba(255,255,255,0.08)",
+              }}>
+                <div style={{
+                  width: Math.min(24, (selectedAnn.lineWidth || DEFAULT_LINE_WIDTH(naturalW)) * zoom * 0.5),
+                  height: Math.min(24, (selectedAnn.lineWidth || DEFAULT_LINE_WIDTH(naturalW)) * zoom * 0.5),
+                  borderRadius: "50%", background: selectedAnn.color,
+                }} />
+              </div>
+              <button
+                onClick={() => setSelectedLineWidth((selectedAnn.lineWidth || DEFAULT_LINE_WIDTH(naturalW)) + Math.max(1, naturalW / 800))}
+                style={stepperBtnStyle}
+              >+</button>
+            </div>
+          )}
+
+          {/* Font size control (text) */}
+          {selectedAnn.tool === "text" && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ color: "#aaa", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>Size</span>
+              <button
+                onClick={() => setSelectedFontSize(Math.max(12, (selectedAnn.fontSize || DEFAULT_FONT_SIZE(naturalW)) - Math.max(2, naturalW / 80)))}
+                style={stepperBtnStyle}
+              >A−</button>
+              <span style={{ color: "#fff", fontSize: 13, minWidth: 36, textAlign: "center" }}>
+                {Math.round((selectedAnn.fontSize || DEFAULT_FONT_SIZE(naturalW)) / naturalW * 1000)}‰
+              </span>
+              <button
+                onClick={() => setSelectedFontSize((selectedAnn.fontSize || DEFAULT_FONT_SIZE(naturalW)) + Math.max(2, naturalW / 80))}
+                style={stepperBtnStyle}
+              >A+</button>
+            </div>
+          )}
+
+          {/* Divider */}
+          <div style={{ width: 1, height: 24, background: "rgba(255,255,255,0.15)" }} />
+
+          {/* Color swatches for selected annotation */}
+          <div style={{ display: "flex", gap: 4 }}>
+            {COLORS.map((c) => (
+              <button
+                key={c}
+                onClick={() => {
+                  setAnnotations((a) => a.map((ann) => ann.id === selectedAnn.id ? { ...ann, color: c } : ann));
+                }}
+                style={{
+                  width: 24, height: 24, borderRadius: "50%",
+                  background: c, border: selectedAnn.color === c ? "3px solid #fff" : "2px solid rgba(255,255,255,0.3)",
+                  cursor: "pointer", flexShrink: 0, padding: 0,
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Bottom toolbar */}
       {showToolbar && (
         <div className="iv-toolbar" style={{
@@ -548,24 +633,22 @@ export default function ImageViewer({ blob, serverUrl, alt, onClose, onSave }: I
               {t === "none" ? "🖐 Pan" : t === "select" ? "◀▶ Select" : t === "arrow" ? "→ Arrow" : t === "rect" ? "▭ Box" : t === "freehand" ? "✏ Draw" : "T Text"}
             </button>
           ))}
-          <div style={{ display: "flex", gap: 4, marginLeft: 4 }}>
-            {COLORS.map((c) => (
-              <button
-                key={c}
-                onClick={() => {
-                  setColor(c);
-                  if (selectedId !== null) {
-                    setAnnotations((a) => a.map((ann) => ann.id === selectedId ? { ...ann, color: c } : ann));
-                  }
-                }}
-                style={{
-                  width: 28, height: 28, borderRadius: "50%",
-                  background: c, border: color === c ? "3px solid #fff" : "2px solid rgba(255,255,255,0.4)",
-                  cursor: "pointer", flexShrink: 0,
-                }}
-              />
-            ))}
-          </div>
+          {/* Color swatches (for new annotations) */}
+          {selectedId === null && (
+            <div style={{ display: "flex", gap: 4, marginLeft: 4 }}>
+              {COLORS.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setColor(c)}
+                  style={{
+                    width: 28, height: 28, borderRadius: "50%",
+                    background: c, border: color === c ? "3px solid #fff" : "2px solid rgba(255,255,255,0.4)",
+                    cursor: "pointer", flexShrink: 0, padding: 0,
+                  }}
+                />
+              ))}
+            </div>
+          )}
           <div style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
             <button onClick={() => setZoom((z) => Math.max(0.1, z * 0.8))} style={ivBtnStyle}>−</button>
             <span style={{ color: "#fff", fontSize: 12, alignSelf: "center", minWidth: 40, textAlign: "center" }}>{Math.round(zoom * 100)}%</span>
@@ -584,10 +667,18 @@ const ivBtnStyle: React.CSSProperties = {
   display: "inline-flex", alignItems: "center", justifyContent: "center",
 };
 
+const stepperBtnStyle: React.CSSProperties = {
+  background: "rgba(255,255,255,0.12)", color: "#fff",
+  border: "1px solid rgba(255,255,255,0.2)", borderRadius: 6,
+  width: 36, height: 36, fontSize: 16, cursor: "pointer",
+  display: "inline-flex", alignItems: "center", justifyContent: "center",
+  padding: 0, flexShrink: 0,
+};
+
 function drawAnnotation(ctx: CanvasRenderingContext2D, ann: Annotation, naturalW: number, selected: boolean) {
   ctx.strokeStyle = ann.color;
   ctx.fillStyle = ann.color;
-  ctx.lineWidth = Math.max(3, naturalW / 400);
+  ctx.lineWidth = ann.lineWidth || DEFAULT_LINE_WIDTH(naturalW);
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
 
@@ -604,11 +695,12 @@ function drawAnnotation(ctx: CanvasRenderingContext2D, ann: Annotation, naturalW
     for (let i = 1; i < ann.points.length; i++) ctx.lineTo(ann.points[i].x, ann.points[i].y);
     ctx.stroke();
   } else if (ann.tool === "text" && ann.text) {
-    const fontSize = Math.max(20, naturalW / 40);
+    const fontSize = ann.fontSize || DEFAULT_FONT_SIZE(naturalW);
     ctx.font = `bold ${fontSize}px -apple-system, sans-serif`;
     ctx.lineWidth = fontSize / 4;
     ctx.strokeStyle = ann.color === "#ffffff" || ann.color === "#ffff00" ? "#000000" : "#ffffff";
     ctx.strokeText(ann.text, ann.startX, ann.startY);
+    ctx.fillStyle = ann.color;
     ctx.fillText(ann.text, ann.startX, ann.startY);
   }
 }
