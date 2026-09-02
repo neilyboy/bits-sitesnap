@@ -22,6 +22,7 @@ interface ThumbImgProps {
 export default function ThumbImg({ blob, dataUrl, serverUrl, alt, className, onClick }: ThumbImgProps) {
   const [objectUrl, setObjectUrl] = useState<string>("");
   const [fetchedUrl, setFetchedUrl] = useState<string>("");
+  const [fetchState, setFetchState] = useState<"idle" | "loading" | "error">("idle");
 
   // Create object URL from blob (or revoke when blob changes).
   useEffect(() => {
@@ -37,35 +38,103 @@ export default function ThumbImg({ blob, dataUrl, serverUrl, alt, className, onC
   useEffect(() => {
     if (!blob && !dataUrl && serverUrl) {
       let cancelled = false;
+      setFetchState("loading");
       (async () => {
         try {
           const token = await getSetting("auth_token", "");
-          const base = await getSetting("server_url", "");
-          const fullUrl = serverUrl.startsWith("http") ? serverUrl : (base + serverUrl);
+          let base = await getSetting("server_url", "");
+          base = base ? base.replace(/\/$/, "") : ""; // strip trailing slash like api.ts
+          // Fix old stale URLs that contain localhost/127.0.0.1 — extract
+          // just the path so the fetch goes to the configured server, not
+          // to the phone's own localhost.
+          let effectiveServerUrl = serverUrl;
+          if (effectiveServerUrl.startsWith("http") &&
+              (effectiveServerUrl.includes("://localhost") || effectiveServerUrl.includes("://127.0.0.1"))) {
+            try {
+              const u = new URL(effectiveServerUrl);
+              effectiveServerUrl = u.pathname + u.search;
+            } catch {}
+          }
+          const fullUrl = effectiveServerUrl.startsWith("http") ? effectiveServerUrl : (base + effectiveServerUrl);
+          console.debug("[ThumbImg] fetching", fullUrl);
           const resp = await fetch(fullUrl, {
             headers: token ? { Authorization: `Bearer ${token}` } : {},
           });
-          if (!resp.ok) return;
+          if (!resp.ok) {
+            console.warn("[ThumbImg] fetch failed:", resp.status, resp.statusText, fullUrl);
+            if (!cancelled) setFetchState("error");
+            return;
+          }
           const fetchedBlob = await resp.blob();
           if (!cancelled) {
             const url = URL.createObjectURL(fetchedBlob);
             setFetchedUrl(url);
+            setFetchState("idle");
           }
-        } catch {
-          // Offline or auth failed — can't fetch.
+        } catch (e) {
+          console.warn("[ThumbImg] fetch error:", e, serverUrl);
+          if (!cancelled) setFetchState("error");
         }
       })();
       return () => {
         cancelled = true;
-        if (fetchedUrl) URL.revokeObjectURL(fetchedUrl);
-        setFetchedUrl("");
+        setFetchedUrl((prev) => {
+          if (prev) URL.revokeObjectURL(prev);
+          return "";
+        });
       };
     }
-    setFetchedUrl("");
+    setFetchState("idle");
   }, [blob, dataUrl, serverUrl]);
 
   const src = dataUrl || objectUrl || fetchedUrl;
-  if (!src) return null;
+
+  if (!src) {
+    if (fetchState === "loading") {
+      return (
+        <div
+          className={className}
+          onClick={onClick}
+          style={{
+            width: 76, height: 76,
+            borderRadius: 6,
+            background: "var(--surface-2)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            border: "1px solid var(--border)",
+            ...(onClick ? { cursor: "pointer" } : {}),
+          }}
+        >
+          <span className="spinner dark" />
+        </div>
+      );
+    }
+    if (fetchState === "error") {
+      return (
+        <div
+          className={className}
+          onClick={onClick}
+          style={{
+            width: 76, height: 76,
+            borderRadius: 6,
+            background: "var(--surface-2)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            border: "1px solid var(--border)",
+            color: "var(--text-muted)",
+            fontSize: 11,
+            ...(onClick ? { cursor: "pointer" } : {}),
+          }}
+        >
+          No image
+        </div>
+      );
+    }
+    return null;
+  }
+
   return (
     <img
       src={src}

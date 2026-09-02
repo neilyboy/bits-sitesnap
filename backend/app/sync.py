@@ -98,7 +98,12 @@ def _image_out(img: Image, base_url: str = "") -> ImageOut:
         server_updated_at=img.server_updated_at,
         sync_status=img.sync_status,
         deleted=img.deleted,
-        url=f"{base_url}/api/images/{img.id}/file" if base_url else f"/api/images/{img.id}/file",
+        # Always return a RELATIVE url — the frontend constructs the full
+        # URL using its configured server_url setting.  Returning an
+        # absolute url with the server's hostname (e.g. localhost) breaks
+        # image loading on other devices (phones, tablets) where that
+        # hostname doesn't resolve to the server.
+        url=f"/api/images/{img.id}/file",
     )
 
 

@@ -70,16 +70,31 @@ export default function ImageViewer({ blob, serverUrl, alt, onClose, onSave }: I
       if (!useBlob && serverUrl) {
         try {
           const token = await getSetting("auth_token", "");
-          const base = await getSetting("server_url", "");
-          const fullUrl = serverUrl.startsWith("http") ? serverUrl : (base + serverUrl);
+          let base = await getSetting("server_url", "");
+          base = base ? base.replace(/\/$/, "") : ""; // strip trailing slash like api.ts
+          // Fix old stale URLs that contain localhost/127.0.0.1
+          let effectiveServerUrl = serverUrl;
+          if (effectiveServerUrl.startsWith("http") &&
+              (effectiveServerUrl.includes("://localhost") || effectiveServerUrl.includes("://127.0.0.1"))) {
+            try {
+              const u = new URL(effectiveServerUrl);
+              effectiveServerUrl = u.pathname + u.search;
+            } catch {}
+          }
+          const fullUrl = effectiveServerUrl.startsWith("http") ? effectiveServerUrl : (base + effectiveServerUrl);
+          console.debug("[ImageViewer] fetching", fullUrl);
           const resp = await fetch(fullUrl, {
             headers: token ? { Authorization: `Bearer ${token}` } : {},
           });
           if (resp.ok) {
             useBlob = await resp.blob();
             if (!cancelled) setResolvedBlob(useBlob);
+          } else {
+            console.warn("[ImageViewer] fetch failed:", resp.status, resp.statusText, fullUrl);
           }
-        } catch {}
+        } catch (e) {
+          console.warn("[ImageViewer] fetch error:", e, serverUrl);
+        }
       }
       if (!useBlob || cancelled) return;
       url = URL.createObjectURL(useBlob);
