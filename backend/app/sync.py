@@ -60,6 +60,7 @@ def _site_out(s: Site, item_count: int = 0) -> SiteOut:
         sync_status=s.sync_status,
         deleted=s.deleted,
         item_count=item_count,
+        logo_url=f"/api/sites/{s.id}/logo" if s.logo_path else "",
     )
 
 

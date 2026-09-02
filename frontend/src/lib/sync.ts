@@ -121,6 +121,7 @@ async function push(): Promise<{ sites: number; items: number; images: number; a
         server_updated_at: s.server_updated_at,
         sync_status: "synced",
         deleted: s.deleted,
+        logo_url: s.logo_url || undefined,
       });
     }
     for (const i of resp.items) {
@@ -161,6 +162,20 @@ async function push(): Promise<{ sites: number; items: number; images: number; a
 }
 
 async function uploadBinaries(): Promise<void> {
+  // Upload site logos that haven't been synced yet
+  const sitesWithLogos = (await db.sites.toArray()).filter(
+    (s) => s.logo_blob && !s.logo_synced && !s.deleted && s.id
+  );
+  for (const site of sitesWithLogos) {
+    try {
+      await api.uploadSiteLogo(site.id!, site.logo_blob!);
+      await db.sites.update(site.client_uuid, { logo_synced: true });
+    } catch (e) {
+      console.warn("logo upload failed", site.client_uuid, e);
+      throw e;
+    }
+  }
+
   // Images whose metadata is synced but blob not yet uploaded (boolean — filter in memory).
   const images = (await db.images.toArray()).filter((i) => !i.binary_synced);
   for (const img of images) {
@@ -235,10 +250,15 @@ async function pull(): Promise<{ server_time: string; sites: number; items: numb
       if (existing && existing.server_updated_at
           && existing.server_updated_at >= s.server_updated_at
           && existing.sync_status === "synced") {
-        // skip — we already have this or newer
+        // skip — we already have this or newer, but update logo_url if server has one
+        if (s.logo_url && !existing.logo_url) {
+          await db.sites.update(s.client_uuid, { logo_url: s.logo_url, logo_synced: true });
+        }
       } else if (existing && existing.sync_status === "pending") {
         if (!existing.server_updated_at || existing.server_updated_at < s.server_updated_at) {
-          await db.sites.put({ ...existing, ...siteFromDto(s) });
+          // Server is newer — update, but preserve local logo_blob if we have one
+          const logoBlob = existing.logo_blob;
+          await db.sites.put({ ...existing, ...siteFromDto(s), logo_blob: logoBlob });
         }
       } else {
         await db.sites.put(siteFromDto(s));
@@ -406,6 +426,8 @@ function siteFromDto(s: import("./types").SiteDTO): SiteRow {
     server_updated_at: s.server_updated_at,
     sync_status: "synced",
     deleted: s.deleted,
+    logo_url: s.logo_url || undefined,
+    logo_synced: true, // if server has a logo_url, it's already synced
   };
 }
 

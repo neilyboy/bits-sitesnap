@@ -27,6 +27,7 @@ export interface SiteDTO {
   sync_status: string;
   deleted: boolean;
   item_count: number;
+  logo_url: string;
 }
 
 export interface ItemDTO {

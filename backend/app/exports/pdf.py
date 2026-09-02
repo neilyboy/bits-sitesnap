@@ -33,7 +33,7 @@ def _logo_svg(brand_color: str) -> str:
 
 
 def generate_pdf(s: Session, site_id: int) -> tuple[bytes, str]:
-    payload = build_report(s, site_id, embed_images=False)
+    payload = build_report(s, site_id, embed_images=True)
     if payload is None:
         raise FileNotFoundError(f"Site {site_id} not found")
 
@@ -44,6 +44,7 @@ def generate_pdf(s: Session, site_id: int) -> tuple[bytes, str]:
         categories_in_order=payload.categories_in_order,
         brand_color=payload.brand_color,
         logo_svg=_logo_svg(payload.brand_color),
+        site_logo_data_url=payload.logo_data_url,
         generated_at=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
     )
 

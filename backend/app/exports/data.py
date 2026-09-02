@@ -56,6 +56,7 @@ class ReportPayload:
     items: list[ReportItem]
     categories_in_order: list[str]
     brand_color: str
+    logo_data_url: str = ""
 
 
 def _category_sort_key(name: str) -> tuple[int, int, str]:
@@ -127,11 +128,23 @@ def build_report(s: Session, site_id: int, embed_images: bool = False) -> Option
         cats.add(it.category)
 
     ordered_cats = sorted(cats, key=_category_sort_key)
+
+    # Build logo data URL if site has a logo
+    logo_data_url = ""
+    if site.logo_path:
+        logo_abs = settings.images_dir / site.logo_path
+        if logo_abs.exists():
+            ext = str(logo_abs).rsplit(".", 1)[-1].lower()
+            mime_map = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png",
+                        "gif": "image/gif", "webp": "image/webp", "svg": "image/svg+xml"}
+            logo_data_url = _file_to_data_url(logo_abs, mime_map.get(ext, "image/jpeg"))
+
     return ReportPayload(
         site=site,
         items=report_items,
         categories_in_order=ordered_cats,
         brand_color=settings.brand_color,
+        logo_data_url=logo_data_url,
     )
 
 

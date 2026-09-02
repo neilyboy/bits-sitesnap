@@ -3,6 +3,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db";
 import { useState } from "react";
 import { IconPlus, IconMapPin, IconCalendar, IconImage, IconBuilding } from "../components/Icons";
+import SiteLogo from "../components/SiteLogo";
 
 export default function SitesPage() {
   const navigate = useNavigate();
@@ -57,24 +58,29 @@ export default function SitesPage() {
             key={s.client_uuid}
             to={`/sites/${s.client_uuid}`}
             className="site-card"
-            style={{ display: "block", textDecoration: "none", color: "inherit" }}
+            style={{ display: "flex", alignItems: "flex-start", gap: 12, textDecoration: "none", color: "inherit" }}
           >
-            <div className="row between">
-              <div className="site-name">{s.business_name || "Untitled Site"}</div>
-              {s.sync_status === "pending" && <span className="badge badge-pending">pending</span>}
-            </div>
-            <div className="site-meta">
-              <IconCalendar size={14} />
-              <span>{s.survey_date || "no date"}</span>
-              <span style={{ opacity: 0.4 }}>·</span>
-              <IconImage size={14} />
-              <span>{itemCounts?.get(s.client_uuid) ?? 0} items</span>
-            </div>
-            {s.address_line1 && (
-              <div className="site-meta">
-                <IconMapPin size={14} />
-                <span>{s.address_line1}{s.city ? `, ${s.city}` : ""}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="row between">
+                <div className="site-name">{s.business_name || "Untitled Site"}</div>
+                {s.sync_status === "pending" && <span className="badge badge-pending">pending</span>}
               </div>
+              <div className="site-meta">
+                <IconCalendar size={14} />
+                <span>{s.survey_date || "no date"}</span>
+                <span style={{ opacity: 0.4 }}>·</span>
+                <IconImage size={14} />
+                <span>{itemCounts?.get(s.client_uuid) ?? 0} items</span>
+              </div>
+              {s.address_line1 && (
+                <div className="site-meta">
+                  <IconMapPin size={14} />
+                  <span>{s.address_line1}{s.city ? `, ${s.city}` : ""}</span>
+                </div>
+              )}
+            </div>
+            {(s.logo_blob || s.logo_url) && (
+              <SiteLogo blob={s.logo_blob} url={s.logo_url} size={56} />
             )}
           </Link>
         ))

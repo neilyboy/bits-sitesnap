@@ -406,6 +406,52 @@ def delete_image(image_id: int, _=Depends(require_auth), db: Session = Depends(g
     return {"ok": True}
 
 
+# ---------- Site Logo ----------
+@router.post("/sites/{site_id}/logo")
+async def upload_site_logo(
+    site_id: int,
+    file: UploadFile = File(...),
+    _=Depends(require_auth),
+    db: Session = Depends(get_db),
+):
+    site = db.get(Site, site_id)
+    if site is None or site.deleted:
+        raise HTTPException(status_code=404, detail="Site not found.")
+    settings = get_settings()
+    # Save logo as a single file: logos/{site_id}_{uuid}.ext
+    import uuid as _uuid
+    ext = (file.filename or "logo.jpg").rsplit(".", 1)[-1].lower()
+    if ext not in ("jpg", "jpeg", "png", "gif", "webp", "svg"):
+        ext = "jpg"
+    logo_dir = settings.images_dir / "logos"
+    logo_dir.mkdir(parents=True, exist_ok=True)
+    logo_name = f"{site_id}_{_uuid.uuid4().hex[:12]}.{ext}"
+    logo_path = logo_dir / logo_name
+    content = await file.read()
+    logo_path.write_bytes(content)
+    # Store relative path (under images dir)
+    site.logo_path = f"logos/{logo_name}"
+    site.server_updated_at = datetime.now(timezone.utc)
+    db.commit()
+    return {"ok": True, "logo_url": f"/api/sites/{site_id}/logo"}
+
+
+@router.get("/sites/{site_id}/logo")
+def get_site_logo(site_id: int, _=Depends(require_auth), db: Session = Depends(get_db)):
+    site = db.get(Site, site_id)
+    if site is None or site.deleted or not site.logo_path:
+        raise HTTPException(status_code=404, detail="No logo.")
+    settings = get_settings()
+    path = settings.images_dir / site.logo_path
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Logo file missing.")
+    # Guess media type from extension
+    ext = str(path).rsplit(".", 1)[-1].lower()
+    media = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png",
+             "gif": "image/gif", "webp": "image/webp", "svg": "image/svg+xml"}
+    return FileResponse(path, media_type=media.get(ext, "image/jpeg"))
+
+
 # ---------- Audio ----------
 def _audio_to_out(a: AudioClip) -> AudioOut:
     return AudioOut(

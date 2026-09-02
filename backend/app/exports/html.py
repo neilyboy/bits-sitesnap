@@ -28,6 +28,7 @@ def generate_html(s: Session, site_id: int) -> tuple[bytes, str]:
         categories_in_order=payload.categories_in_order,
         brand_color=payload.brand_color,
         logo_svg=_logo_svg(payload.brand_color),
+        site_logo_data_url=payload.logo_data_url,
         generated_at=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
     )
 

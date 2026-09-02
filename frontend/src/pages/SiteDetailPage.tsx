@@ -7,6 +7,7 @@ import { processImage, quickThumbnail } from "../lib/image";
 import ThumbImg from "../components/ThumbImg";
 import ImageViewer from "../components/ImageViewer";
 import { IconChevronLeft, IconPlus, IconEdit, IconDownload, IconTrash, IconCamera, IconCheck, IconX, IconMapPin, IconUser, IconCalendar, IconChevronDown } from "../components/Icons";
+import SiteLogo from "../components/SiteLogo";
 
 const DEFAULT_ORDER = ["Cameras", "Access Control", "Intercom", "Air Quality", "Alarms", "Workplace", "Other"];
 
@@ -114,9 +115,14 @@ export default function SiteDetailPage() {
       </div>
 
       <div className="card">
-        <div className="row between">
-          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>{site.business_name || "Untitled"}</h2>
-          {site.sync_status === "pending" && <span className="badge badge-pending">pending</span>}
+        <div className="row between" style={{ alignItems: "flex-start" }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>{site.business_name || "Untitled"}</h2>
+            {site.sync_status === "pending" && <span className="badge badge-pending" style={{ marginTop: 6 }}>pending</span>}
+          </div>
+          {(site.logo_blob || site.logo_url) && (
+            <SiteLogo blob={site.logo_blob} url={site.logo_url} size={64} />
+          )}
         </div>
         <div className="site-meta" style={{ marginTop: 8 }}>
           <IconCalendar size={14} />

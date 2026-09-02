@@ -20,6 +20,10 @@ export interface SiteRow {
   server_updated_at?: string;
   sync_status: "pending" | "synced";
   deleted: boolean;
+  // Site logo / company image
+  logo_blob?: Blob;       // stored in IndexedDB (offline-capable)
+  logo_url?: string;      // server path to fetch logo if blob is missing
+  logo_synced: boolean;   // whether logo binary has been uploaded
 }
 
 export interface ItemRow {
@@ -124,6 +128,17 @@ class SiteSnapDB extends Dexie {
     // v2: Remove boolean indexes (deleted, binary_synced) — IndexedDB
     // cannot index boolean values. We filter in memory instead.
     this.version(2).stores({
+      sites: "client_uuid, sync_status, server_updated_at, survey_date",
+      items: "client_uuid, site_client_uuid, sync_status, server_updated_at, sort_order",
+      images: "client_uuid, item_client_uuid, sync_status, sort_order",
+      audio: "client_uuid, item_client_uuid, sync_status",
+      categories: "slug, sort_order",
+      sync_log: "++id, at",
+      settings: "key",
+    });
+    // v3: Add logo fields to sites (no index changes needed — Dexie
+    // preserves existing data and just adds the new fields as undefined).
+    this.version(3).stores({
       sites: "client_uuid, sync_status, server_updated_at, survey_date",
       items: "client_uuid, site_client_uuid, sync_status, server_updated_at, sort_order",
       images: "client_uuid, item_client_uuid, sync_status, sort_order",

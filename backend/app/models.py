@@ -42,6 +42,7 @@ class Site(Base):
     surveyor_name: Mapped[str] = mapped_column(String(255), default="")
     survey_date: Mapped[str] = mapped_column(String(20), default="")  # ISO date
     general_notes: Mapped[str] = mapped_column(Text, default="")
+    logo_path: Mapped[str] = mapped_column(String(255), default="")  # relative path under images dir
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, onupdate=_utcnow)

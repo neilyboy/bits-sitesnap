@@ -69,6 +69,7 @@ class SiteOut(SiteBase):
     sync_status: str
     deleted: bool
     item_count: int = 0
+    logo_url: str = ""
 
 
 # ---------- Items ----------

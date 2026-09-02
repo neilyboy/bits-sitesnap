@@ -1,7 +1,7 @@
 """Seed default categories and create DB schema on startup."""
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import inspect, select, text
 
 from .db import engine, session_scope
 from .models import Base, Category
@@ -20,7 +20,18 @@ DEFAULT_CATEGORIES = [
 
 def init_db() -> None:
     Base.metadata.create_all(engine)
+    _migrate_add_columns()
     _seed_categories()
+
+
+def _migrate_add_columns() -> None:
+    """Add new columns to existing tables (SQLite ALTER TABLE ADD COLUMN)."""
+    inspector = inspect(engine)
+    # Sites: add logo_path if missing
+    site_cols = {c["name"] for c in inspector.get_columns("sites")}
+    if "logo_path" not in site_cols:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE sites ADD COLUMN logo_path VARCHAR(255) DEFAULT ''"))
 
 
 def _seed_categories() -> None:

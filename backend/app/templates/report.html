@@ -37,6 +37,16 @@
     opacity: 0.85;
     margin-top: 6pt;
   }
+  .cover .site-logo-wrap {
+    margin-top: 24pt;
+    margin-bottom: 8pt;
+  }
+  .cover .site-logo-img {
+    max-height: 100pt;
+    max-width: 200pt;
+    object-fit: contain;
+    border-radius: 4pt;
+  }
   .cover h1 {
     font-size: 30pt;
     margin: 36pt 0 8pt;
@@ -116,6 +126,11 @@
       {{ logo_svg|safe }}
       <div class="app-name">SITESNAP</div>
     </div>
+    {% if site_logo_data_url %}
+    <div class="site-logo-wrap">
+      <img src="{{ site_logo_data_url }}" alt="Site logo" class="site-logo-img">
+    </div>
+    {% endif %}
     <h1>Site Survey Report</h1>
     <div class="subtitle">{{ site.business_name or "Untitled Site" }}</div>
     <div class="meta">

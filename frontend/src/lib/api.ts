@@ -131,6 +131,13 @@ export const api = {
     return request(`/api/items/${itemId}/images`, { method: "POST", body: fd });
   },
 
+  async uploadSiteLogo(siteId: number, file: Blob): Promise<unknown> {
+    const fd = new FormData();
+    const ext = file.type === "image/png" ? "png" : "jpg";
+    fd.append("file", file, `logo.${ext}`);
+    return request(`/api/sites/${siteId}/logo`, { method: "POST", body: fd });
+  },
+
   async uploadAudio(itemId: number, fields: {
     file: Blob;
     clientUuid: string;
