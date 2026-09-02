@@ -7,9 +7,9 @@
   :root {
     --brand: {{ brand_color }};
     --text: #1a1a1a;
-    --muted: #666;
+    --muted: #555;
     --border: #d0d4dc;
-    --bg-alt: #f7f8fa;
+    --bg-alt: #f5f6f8;
   }
   * { box-sizing: border-box; }
   body {
@@ -32,70 +32,55 @@
   .cover-header {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-    border-bottom: 1.5pt solid var(--brand);
-    padding-bottom: 10pt;
-  }
-  .cover-header .brand {
-    display: flex;
     align-items: center;
-    gap: 8pt;
-    color: var(--brand);
-    font-weight: 700;
-    font-size: 12pt;
-    letter-spacing: 0.5pt;
+    border-bottom: 1pt solid var(--border);
+    padding-bottom: 10pt;
+    margin-bottom: 6pt;
   }
-  .cover-header .brand svg { height: 22pt; width: auto; }
-  .cover-header .app-name {
-    font-size: 9pt;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 1pt;
-    margin-top: 4pt;
-  }
+  .cover-header .brand-logo svg { height: 24pt; width: auto; display: block; }
 
   .cover-main {
     flex: 1;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
   }
-  .cover-type {
-    font-size: 12pt;
+  .cover-site-logo {
+    max-height: 80pt;
+    max-width: 200pt;
+    object-fit: contain;
+    margin: 18pt 0 10pt;
+  }
+  .cover h1 {
+    font-size: 26pt;
+    margin: 0 0 8pt;
+    color: var(--text);
+    line-height: 1.2;
+  }
+  .cover .report-type {
+    font-size: 11pt;
     color: var(--muted);
-    letter-spacing: 1pt;
+    letter-spacing: 0.8pt;
     text-transform: uppercase;
     margin-bottom: 8pt;
   }
-  .cover h1 {
-    font-size: 28pt;
-    margin: 0 0 12pt;
-    color: var(--brand);
-    line-height: 1.2;
-  }
-  .cover-subtitle {
-    font-size: 16pt;
+  .cover .address {
+    font-size: 13pt;
     color: #333;
-    margin-bottom: 24pt;
-  }
-  .cover-site-logo {
-    max-height: 90pt;
-    max-width: 220pt;
-    object-fit: contain;
-    margin-bottom: 20pt;
+    margin-bottom: 16pt;
   }
   .cover .meta {
     font-size: 10pt;
-    margin-top: 8pt;
   }
-  .cover .meta table { border-collapse: collapse; width: 100%; max-width: 360pt; }
-  .cover .meta td { padding: 4pt 0; vertical-align: top; }
-  .cover .meta td.k { color: var(--muted); font-weight: 600; width: 110pt; }
+  .cover .meta table { border-collapse: collapse; width: 100%; max-width: 340pt; }
+  .cover .meta td { padding: 3pt 0; vertical-align: top; }
+  .cover .meta td.k { color: var(--muted); font-weight: 600; width: 100pt; }
   .cover .footer {
     font-size: 8pt;
     color: #888;
     border-top: 0.5pt solid var(--border);
     padding-top: 10pt;
+    margin-top: 10pt;
   }
 
   /* ---- Summary ---- */
@@ -107,35 +92,40 @@
     padding-bottom: 4pt;
     border-bottom: 1.5pt solid var(--brand);
   }
-  table.summary-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 9.5pt;
-    table-layout: fixed;
-  }
-  table.summary-table th, table.summary-table td {
+  .summary-grid {
+    display: grid;
+    grid-template-columns: 28pt 1.2fr 1.4fr 3fr 44pt;
     border: 0.5pt solid var(--border);
+    border-radius: 3pt;
+    overflow: hidden;
+    font-size: 9.5pt;
+  }
+  .summary-row {
+    display: grid;
+    grid-template-columns: 28pt 1.2fr 1.4fr 3fr 44pt;
+    grid-column: 1 / -1;
+  }
+  .summary-row div {
     padding: 5pt 6pt;
-    text-align: left;
+    border-right: 0.5pt solid var(--border);
+    border-bottom: 0.5pt solid var(--border);
     vertical-align: top;
+    min-height: 22pt;
   }
-  table.summary-table th {
+  .summary-row div:last-child { border-right: none; }
+  .summary-row.header {
     background: var(--bg-alt);
-    color: #333;
     font-weight: 700;
-    border-bottom: 1pt solid #b0b4bc;
+    color: #333;
   }
-  table.summary-table tr:nth-child(even) { background: var(--bg-alt); }
-  table.summary-table th.num, table.summary-table td.num { text-align: center; width: 6%; }
-  table.summary-table th.cat, table.summary-table td.cat { width: 18%; }
-  table.summary-table th.label, table.summary-table td.label { width: 18%; }
-  table.summary-table th.notes, table.summary-table td.notes { width: 46%; }
-  table.summary-table th.photos, table.summary-table td.photos {
+  .summary-row:nth-child(even):not(.header) { background: var(--bg-alt); }
+  .summary-row div.num, .summary-row div.photos {
     text-align: center;
-    width: 12%;
-    font-variant-numeric: tabular-nums;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
-  table.summary-table td.photos { color: #555; }
+  .summary-row div.photos { color: #555; }
 
   /* ---- Items ---- */
   .category { padding: 14pt 36pt 0; }
@@ -148,17 +138,14 @@
     page-break-after: avoid;
   }
   .item {
-    margin-bottom: 16pt;
-    border: 0.5pt solid var(--border);
-    border-radius: 4pt;
-    padding: 10pt 12pt;
+    margin-bottom: 14pt;
     page-break-inside: auto;
   }
   .item-head {
     page-break-inside: avoid;
-    margin-bottom: 8pt;
+    margin-bottom: 6pt;
   }
-  .item h3 { font-size: 11pt; margin: 0 0 5pt; color: #222; page-break-after: avoid; }
+  .item h3 { font-size: 11pt; margin: 0 0 4pt; color: #222; page-break-after: avoid; }
   .item .label-tag {
     display: inline-block;
     background: #eef2f7;
@@ -170,32 +157,32 @@
     font-weight: 700;
   }
   .item .notes {
-    margin: 5pt 0 0;
+    margin: 4pt 0 0;
     white-space: pre-wrap;
     color: #333;
     line-height: 1.45;
   }
   .item .transcripts {
-    margin: 5pt 0 0;
+    margin: 4pt 0 0;
     color: #444;
     font-style: italic;
     background: #f9fafb;
-    padding: 4pt 6pt;
+    padding: 3pt 6pt;
     border-left: 2pt solid var(--border);
   }
   .item .transcripts .tlabel { font-style: normal; font-weight: 700; color: #777; }
 
   /* ---- Photos ---- */
-  .photos { display: flex; flex-wrap: wrap; gap: 8pt; margin-top: 10pt; }
+  .photos { display: flex; flex-wrap: wrap; gap: 7pt; }
   .photos figure {
     margin: 0;
-    width: 150pt;
+    width: 120pt;
     page-break-inside: avoid;
   }
   .photos img {
     width: 100%;
     height: auto;
-    max-height: 130pt;
+    max-height: 100pt;
     object-fit: contain;
     border: 0.5pt solid var(--border);
     border-radius: 3pt;
@@ -217,7 +204,7 @@
   .lightbox img { max-width: 95vw; max-height: 95vh; }
   @media print {
     .html-only { display: none !important; }
-    .photos figure { width: 130pt; }
+    .photos figure { width: 110pt; }
   }
 </style>
 </head>
@@ -226,20 +213,16 @@
 <section class="cover">
   <div>
     <div class="cover-header">
-      <div class="brand">
-        {{ logo_svg|safe }}
-        <span>SiteSnap</span>
-      </div>
-      <div class="app-name">Site Survey Report</div>
+      <div class="brand-logo">{{ logo_svg|safe }}</div>
     </div>
 
     <div class="cover-main">
       {% if site_logo_data_url %}
       <img src="{{ site_logo_data_url }}" alt="Site logo" class="cover-site-logo">
       {% endif %}
-      <div class="cover-type">Site Survey Report</div>
+      <div class="report-type">Site Survey Report</div>
       <h1>{{ site.business_name or "Untitled Site" }}</h1>
-      <div class="cover-subtitle">
+      <div class="address">
         {{ site.address_line1 }}{% if site.address_line2 %}, {{ site.address_line2 }}{% endif %}
         {% if site.city or site.state or site.zip %}<br>{{ site.city }}{{ ", " if site.city and site.state }}{{ site.state }} {{ site.zip }}{% endif %}
       </div>
@@ -260,28 +243,24 @@
 
 <section class="summary">
   <h2>Summary</h2>
-  <table class="summary-table">
-    <thead>
-      <tr>
-        <th class="num">#</th>
-        <th class="cat">Category</th>
-        <th class="label">Label</th>
-        <th class="notes">Notes</th>
-        <th class="photos">Photos</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for it in items %}
-      <tr>
-        <td class="num">{{ loop.index }}</td>
-        <td class="cat">{{ it.category }}</td>
-        <td class="label">{{ it.label or "—" }}</td>
-        <td class="notes">{{ (it.notes[:90] + '…') if it.notes|length > 90 else it.notes or "—" }}</td>
-        <td class="photos">{{ it.images|length }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="summary-grid">
+    <div class="summary-row header">
+      <div class="num">#</div>
+      <div class="cat">Category</div>
+      <div class="label">Label</div>
+      <div class="notes">Notes</div>
+      <div class="photos">Photos</div>
+    </div>
+    {% for it in items %}
+    <div class="summary-row">
+      <div class="num">{{ loop.index }}</div>
+      <div class="cat">{{ it.category }}</div>
+      <div class="label">{{ it.label or "—" }}</div>
+      <div class="notes">{{ (it.notes[:90] + '…') if it.notes|length > 90 else it.notes or "—" }}</div>
+      <div class="photos">{{ it.images|length }}</div>
+    </div>
+    {% endfor %}
+  </div>
 </section>
 
 {% for cat in categories_in_order %}

@@ -148,7 +148,33 @@ def build_report(s: Session, site_id: int, embed_images: bool = False) -> Option
     )
 
 
-def _file_to_data_url(path: Path, mime: str) -> str:
+REPORT_MAX_IMAGE_DIM = 1024
+
+
+def _resized_image_bytes(path: Path, mime: str) -> bytes:
+    """Return image bytes scaled down to REPORT_MAX_IMAGE_DIM for reports."""
     data = path.read_bytes()
+    if mime not in ("image/jpeg", "image/png", "image/webp"):
+        return data
+    try:
+        from PIL import Image as PilImage
+        from io import BytesIO
+        img = PilImage.open(BytesIO(data))
+        img = img.convert("RGB")  # ensure jpeg-compatible
+        w, h = img.size
+        if w > REPORT_MAX_IMAGE_DIM or h > REPORT_MAX_IMAGE_DIM:
+            ratio = REPORT_MAX_IMAGE_DIM / max(w, h)
+            new_size = (int(w * ratio), int(h * ratio))
+            img = img.resize(new_size, PilImage.LANCZOS)
+        out = BytesIO()
+        # Save as JPEG at 85% quality to keep reports small.
+        img.save(out, format="JPEG", quality=85, optimize=True)
+        return out.getvalue()
+    except Exception:
+        return data
+
+
+def _file_to_data_url(path: Path, mime: str) -> str:
+    data = _resized_image_bytes(path, mime)
     b64 = base64.b64encode(data).decode("ascii")
-    return f"data:{mime};base64,{b64}"
+    return f"data:image/jpeg;base64,{b64}"

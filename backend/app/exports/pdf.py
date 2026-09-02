@@ -17,18 +17,21 @@ _env = Environment(
 )
 
 
-def _logo_svg(brand_color: str) -> str:
-    """Read the bundled logo SVG and recolor the white fills to brand color."""
+def _logo_svg(brand_color: str, dark: bool = False) -> str:
+    """Read the bundled logo SVG. If dark=True, recolor white fills to dark."""
     logo_path = Path(__file__).resolve().parent.parent.parent.parent / "logo.svg"
     if not logo_path.exists():
-        # Fallback: look in static dir
         logo_path = get_settings().data_dir / "logo.svg"
     if not logo_path.exists():
         return ""
     svg = logo_path.read_text(encoding="utf-8")
-    # The source logo uses fill: #fff. Recolor to white-on-brand (keep white)
-    # but ensure viewBox sizing. We leave it white since the cover background
-    # is the brand color.
+    if dark:
+        # The source logo uses fill: #fff. On a white/light background we need a
+        # dark variant. Replace white fills with a dark navy/brand color.
+        dark_color = "#1a2b4a"  # dark navy that works against white
+        svg = svg.replace("fill: #fff;", f"fill: {dark_color};")
+        svg = svg.replace('fill="#fff"', f'fill="{dark_color}"')
+        svg = svg.replace('fill:#fff', f'fill:{dark_color}')
     return svg
 
 
@@ -43,7 +46,7 @@ def generate_pdf(s: Session, site_id: int) -> tuple[bytes, str]:
         items=payload.items,
         categories_in_order=payload.categories_in_order,
         brand_color=payload.brand_color,
-        logo_svg=_logo_svg(payload.brand_color),
+        logo_svg=_logo_svg(payload.brand_color, dark=True),
         site_logo_data_url=payload.logo_data_url,
         generated_at=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
     )
