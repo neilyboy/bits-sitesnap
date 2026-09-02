@@ -26,7 +26,7 @@ export default function LoginPage({ onLoggedIn }: { onLoggedIn: () => void }) {
     <div className="login-wrap">
       <form className="login-card" onSubmit={submit}>
         <div className="logo-wrap">
-          <img src="/logo.svg" alt="SiteSnap" className="logo" />
+          <img src="/logo.svg" alt="SiteSnap" className="logo" style={{ filter: "brightness(0) invert(1)" }} />
         </div>
         <h1>SiteSnap</h1>
         <div className="sub">Fast offline site surveys</div>

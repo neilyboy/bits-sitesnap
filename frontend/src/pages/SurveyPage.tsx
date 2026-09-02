@@ -9,6 +9,7 @@ import { useAudioRecorder } from "../hooks/useAudioRecorder";
 import ThumbImg from "../components/ThumbImg";
 import ImageViewer from "../components/ImageViewer";
 import { saveToCameraRoll } from "../lib/share";
+import { IconChevronLeft, IconCamera, IconMic, IconCheck, IconX, IconEdit, IconTrash, IconPlus } from "../components/Icons";
 
 const DEFAULT_CATEGORIES = ["Cameras", "Access Control", "Intercom", "Air Quality", "Alarms", "Workplace", "Other"];
 
@@ -324,7 +325,7 @@ export default function SurveyPage() {
             }
           }}
           readOnly={speech.listening}
-          placeholder="Tap 🎤 to dictate, or type notes here…"
+          placeholder="Tap the mic to dictate, or type notes here…"
         />
       </div>
 
@@ -335,10 +336,10 @@ export default function SurveyPage() {
           onClick={toggleRecording}
           style={{ flex: 1 }}
         >
-          {speech.listening || recorder.recording ? "⏹ Stop" : "🎤 Voice"}
+          {speech.listening || recorder.recording ? (<><IconX size={18} /> Stop</>) : (<><IconMic size={18} /> Voice</>)}
         </button>
         <button className="btn btn-primary" onClick={saveItem} disabled={savingItem} style={{ flex: 1 }}>
-          {savingItem ? "Saving…" : "✓ Save Item"}
+          {savingItem ? (<><span className="spinner" /> Saving…</>) : (<><IconCheck size={18} /> Save Item</>)}
         </button>
       </div>
       {speech.error && <div className="small" style={{ color: "var(--danger)", marginBottom: 8 }}>{speech.error}</div>}
@@ -362,7 +363,7 @@ export default function SurveyPage() {
         disabled={savingItem}
         title="Take photo"
       >
-        📷
+        <IconCamera size={28} />
       </button>
       <input
         ref={fileInputRef}
@@ -501,7 +502,7 @@ function ItemRowCard({ item, openViewer }: { item: ItemRow; openViewer: (blob: B
       <div className="item-card" onClick={(e) => e.stopPropagation()}>
         <div className="row between" style={{ marginBottom: 8 }}>
           <span className="badge badge-cat">{item.category}</span>
-          <button className="btn btn-ghost" style={{ padding: "2px 8px", fontSize: 13 }} onClick={cancelEdit}>Cancel</button>
+          <button className="btn btn-ghost" style={{ padding: "4px 10px", fontSize: 13 }} onClick={cancelEdit}><IconX size={16} /> Cancel</button>
         </div>
         <div className="field">
           <label>Label / Location</label>
@@ -522,7 +523,7 @@ function ItemRowCard({ item, openViewer }: { item: ItemRow; openViewer: (blob: B
                   style={{ position: "absolute", top: -4, right: -4, padding: "2px 6px", fontSize: 12, borderRadius: "50%", minWidth: 24 }}
                   onClick={(e) => { e.stopPropagation(); deleteImage(img.client_uuid); }}
                   title="Remove photo"
-                >×</button>
+                ><IconX size={12} /></button>
               </div>
             ))}
           </div>
@@ -534,7 +535,7 @@ function ItemRowCard({ item, openViewer }: { item: ItemRow; openViewer: (blob: B
             disabled={addingPhotos}
             style={{ flex: 1 }}
           >
-            {addingPhotos ? "Adding…" : "📷 Add Photos"}
+            {addingPhotos ? "Adding…" : (<><IconCamera size={18} /> Add Photos</>)}
           </button>
           <input
             ref={editFileRef}
@@ -545,9 +546,9 @@ function ItemRowCard({ item, openViewer }: { item: ItemRow; openViewer: (blob: B
             className="hidden-file"
             onChange={onAddPhotos}
           />
-          <button className="btn btn-primary" onClick={saveEdit} style={{ flex: 1 }}>✓ Save</button>
+          <button className="btn btn-primary" onClick={saveEdit} style={{ flex: 1 }}><IconCheck size={18} /> Save</button>
         </div>
-        <button className="btn btn-danger btn-block" onClick={deleteItem}>Delete item</button>
+        <button className="btn btn-danger btn-block" onClick={deleteItem}><IconTrash size={16} /> Delete item</button>
       </div>
     );
   }
@@ -566,7 +567,7 @@ function ItemRowCard({ item, openViewer }: { item: ItemRow; openViewer: (blob: B
             style={{ padding: "2px 8px", fontSize: 13 }}
             onClick={(e) => { e.stopPropagation(); setEditing(true); }}
             title="Edit item"
-          >Edit</button>
+          ><IconEdit size={16} /></button>
         </div>
       </div>
       {(item.notes || transcripts.length > 0) && (

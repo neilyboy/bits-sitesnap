@@ -5,6 +5,7 @@ import { api } from "../lib/api";
 import { syncNow } from "../lib/sync";
 import { canSaveToCameraRoll } from "../lib/share";
 import { useState } from "react";
+import { IconChevronLeft, IconSync, IconRefreshCw, IconLogOut, IconCloud, IconCamera } from "../components/Icons";
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -100,9 +101,12 @@ export default function SettingsPage() {
 
   return (
     <div>
-      <div className="row between" style={{ marginBottom: 12 }}>
-        <Link to="/" className="btn btn-ghost">‹ Sites</Link>
-        <h2 style={{ margin: 0, fontSize: 18 }}>Settings</h2>
+      <div className="row between" style={{ marginBottom: 16 }}>
+        <Link to="/" className="btn btn-ghost">
+          <IconChevronLeft size={20} />
+          Sites
+        </Link>
+        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>Settings</h2>
         <span />
       </div>
 
@@ -117,14 +121,18 @@ export default function SettingsPage() {
           />
         </div>
         <div className="small muted">Last sync: {lastSync || "never"}</div>
-        <button className="btn btn-primary" style={{ marginTop: 8 }} onClick={() => syncNow()}>Sync now</button>
+        <button className="btn btn-primary" style={{ marginTop: 10 }} onClick={() => syncNow()}>
+          <IconSync size={18} />
+          Sync now
+        </button>
         <button
           className="btn btn-danger"
           style={{ marginTop: 8, width: "100%" }}
           onClick={fullResync}
           disabled={resyncing}
         >
-          {resyncing ? "Resyncing…" : "Full Resync (clear local & re-download)"}
+          <IconRefreshCw size={18} />
+          {resyncing ? "Resyncing…" : "Full Resync"}
         </button>
         {resyncMsg && (
           <div className="small" style={{ marginTop: 8, color: resyncMsg.startsWith("Error") || resyncMsg.startsWith("Resync failed") ? "var(--danger)" : "var(--success)" }}>
@@ -210,7 +218,10 @@ export default function SettingsPage() {
         )}
       </div>
 
-      <button className="btn btn-block" onClick={logout}>Log out</button>
+      <button className="btn btn-block" onClick={logout}>
+        <IconLogOut size={18} />
+        Log out
+      </button>
     </div>
   );
 }

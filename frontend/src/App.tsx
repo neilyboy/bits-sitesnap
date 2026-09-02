@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, getSetting } from "./db";
 import { isSyncing, pendingCount, subscribeSync, syncNow } from "./lib/sync";
+import { IconSettings, IconSync, IconCloud, IconCloudOff } from "./components/Icons";
 
 export default function App({ children }: { children: ReactNode }) {
   const location = useLocation();
@@ -20,6 +21,7 @@ export default function App({ children }: { children: ReactNode }) {
 
   const isLogin = location.pathname === "/login";
   const isSurvey = location.pathname.endsWith("/survey");
+  const isOnline = navigator.onLine;
 
   const pendingTotal = pending?.total ?? 0;
 
@@ -35,12 +37,14 @@ export default function App({ children }: { children: ReactNode }) {
   return (
     <div className="app">
       <header className="app-header">
-        <Link to="/" style={{ display: "flex", alignItems: "center", gap: 8, color: "#fff" }}>
-          <img src="/logo.svg" alt="SiteSnap" className="logo" />
+        <Link to="/" style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--text)" }}>
+          <img src="/logo.svg" alt="SiteSnap" className="logo" style={{ filter: "brightness(0) invert(1)" }} />
         </Link>
         <div className="title">SiteSnap</div>
         {!isLogin && (
-          <button className="icon-btn" onClick={() => navigate("/settings")}>⚙</button>
+          <button className="icon-btn" onClick={() => navigate("/settings")} title="Settings">
+            <IconSettings size={22} />
+          </button>
         )}
       </header>
 
@@ -49,7 +53,7 @@ export default function App({ children }: { children: ReactNode }) {
       {!isLogin && (
         <div className={`sync-bar ${pendingTotal === 0 ? "synced" : ""}`}>
           <div className="status">
-            <span className="pending-dot" />
+            {isOnline ? <IconCloud size={18} /> : <IconCloudOff size={18} />}
             {syncing ? (
               <><span className="spinner" /> Syncing…</>
             ) : pendingTotal > 0 ? (
@@ -59,7 +63,8 @@ export default function App({ children }: { children: ReactNode }) {
             )}
           </div>
           <button className="sync-btn" onClick={handleSync} disabled={syncing}>
-            Sync now
+            <IconSync size={16} />
+            Sync
           </button>
         </div>
       )}

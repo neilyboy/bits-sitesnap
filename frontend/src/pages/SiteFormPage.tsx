@@ -3,6 +3,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db, type SiteRow } from "../db";
 import { useEffect, useState } from "react";
 import { v7 as uuidv7 } from "uuid";
+import { IconChevronLeft, IconCheck } from "../components/Icons";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -76,7 +77,14 @@ export default function SiteFormPage() {
 
   return (
     <form onSubmit={save}>
-      <h2 style={{ fontSize: 20, marginTop: 0 }}>{existing ? "Edit Site" : "New Site"}</h2>
+      <div className="row between" style={{ marginBottom: 16 }}>
+        <button type="button" className="btn btn-ghost" onClick={() => navigate(-1)}>
+          <IconChevronLeft size={20} />
+          Back
+        </button>
+        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>{existing ? "Edit Site" : "New Site"}</h2>
+        <span />
+      </div>
 
       <div className="field">
         <label>Business Name *</label>
@@ -134,7 +142,7 @@ export default function SiteFormPage() {
       <div className="row" style={{ gap: 10, marginTop: 8 }}>
         <button type="button" className="btn btn-block" onClick={() => navigate(-1)}>Cancel</button>
         <button type="submit" className="btn btn-primary btn-block" disabled={saving}>
-          {saving ? "Saving…" : existing ? "Save" : "Start Surveying"}
+          {saving ? (<><span className="spinner" /> Saving…</>) : (<><IconCheck size={18} /> {existing ? "Save" : "Start Surveying"}</>)}
         </button>
       </div>
     </form>

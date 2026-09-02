@@ -2,6 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db";
 import { useState } from "react";
+import { IconPlus, IconMapPin, IconCalendar, IconImage, IconBuilding } from "../components/Icons";
 
 export default function SitesPage() {
   const navigate = useNavigate();
@@ -25,9 +26,12 @@ export default function SitesPage() {
 
   return (
     <div>
-      <div className="row between" style={{ marginBottom: 12 }}>
-        <h2 style={{ margin: 0, fontSize: 20 }}>Sites</h2>
-        <button className="btn btn-primary" onClick={() => navigate("/sites/new")}>+ New Site</button>
+      <div className="row between" style={{ marginBottom: 16 }}>
+        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>Sites</h2>
+        <button className="btn btn-primary" onClick={() => navigate("/sites/new")}>
+          <IconPlus size={18} />
+          New Site
+        </button>
       </div>
 
       <div className="field">
@@ -41,10 +45,10 @@ export default function SitesPage() {
 
       {filtered.length === 0 ? (
         <div className="empty">
-          <div className="big">📋</div>
+          <div className="big"><IconBuilding size={48} /></div>
           <div>No sites yet.</div>
-          <div className="small" style={{ marginTop: 6 }}>
-            Tap <strong>+ New Site</strong> to start a survey.
+          <div className="small" style={{ marginTop: 8 }}>
+            Tap <strong>New Site</strong> to start a survey.
           </div>
         </div>
       ) : (
@@ -52,18 +56,25 @@ export default function SitesPage() {
           <Link
             key={s.client_uuid}
             to={`/sites/${s.client_uuid}`}
-            className="card clickable"
+            className="site-card"
             style={{ display: "block", textDecoration: "none", color: "inherit" }}
           >
             <div className="row between">
-              <strong>{s.business_name || "Untitled Site"}</strong>
+              <div className="site-name">{s.business_name || "Untitled Site"}</div>
               {s.sync_status === "pending" && <span className="badge badge-pending">pending</span>}
             </div>
-            <div className="small muted" style={{ marginTop: 4 }}>
-              {s.survey_date || "no date"} · {itemCounts?.get(s.client_uuid) ?? 0} items
+            <div className="site-meta">
+              <IconCalendar size={14} />
+              <span>{s.survey_date || "no date"}</span>
+              <span style={{ opacity: 0.4 }}>·</span>
+              <IconImage size={14} />
+              <span>{itemCounts?.get(s.client_uuid) ?? 0} items</span>
             </div>
             {s.address_line1 && (
-              <div className="small muted">{s.address_line1}{s.city ? `, ${s.city}` : ""}</div>
+              <div className="site-meta">
+                <IconMapPin size={14} />
+                <span>{s.address_line1}{s.city ? `, ${s.city}` : ""}</span>
+              </div>
             )}
           </Link>
         ))

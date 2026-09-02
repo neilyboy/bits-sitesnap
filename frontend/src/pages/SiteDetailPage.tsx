@@ -6,6 +6,7 @@ import { v7 as uuidv7 } from "uuid";
 import { processImage, quickThumbnail } from "../lib/image";
 import ThumbImg from "../components/ThumbImg";
 import ImageViewer from "../components/ImageViewer";
+import { IconChevronLeft, IconPlus, IconEdit, IconDownload, IconTrash, IconCamera, IconCheck, IconX, IconMapPin, IconUser, IconCalendar, IconChevronDown } from "../components/Icons";
 
 const DEFAULT_ORDER = ["Cameras", "Access Control", "Intercom", "Air Quality", "Alarms", "Workplace", "Other"];
 
@@ -101,40 +102,82 @@ export default function SiteDetailPage() {
 
   return (
     <div>
+      <div className="row between" style={{ marginBottom: 16 }}>
+        <Link to="/" className="btn btn-ghost" style={{ padding: "6px 10px" }}>
+          <IconChevronLeft size={20} />
+          Sites
+        </Link>
+      </div>
+
       <div className="card">
         <div className="row between">
-          <h2 style={{ margin: 0, fontSize: 20 }}>{site.business_name || "Untitled"}</h2>
+          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>{site.business_name || "Untitled"}</h2>
           {site.sync_status === "pending" && <span className="badge badge-pending">pending</span>}
         </div>
-        <div className="small muted" style={{ marginTop: 6 }}>{site.survey_date || "no date"}</div>
-        {site.address_line1 && <div className="small">{site.address_line1}{site.address_line2 ? `, ${site.address_line2}` : ""}</div>}
-        {(site.city || site.state || site.zip) && (
-          <div className="small">{site.city}{site.city && site.state ? ", " : ""}{site.state} {site.zip}</div>
+        <div className="site-meta" style={{ marginTop: 8 }}>
+          <IconCalendar size={14} />
+          <span>{site.survey_date || "no date"}</span>
+        </div>
+        {site.address_line1 && (
+          <div className="site-meta">
+            <IconMapPin size={14} />
+            <span>{site.address_line1}{site.address_line2 ? `, ${site.address_line2}` : ""}</span>
+          </div>
         )}
-        {site.contact_name && <div className="small muted">Contact: {site.contact_name} {site.contact_phone ? `· ${site.contact_phone}` : ""}</div>}
-        {site.surveyor_name && <div className="small muted">Surveyor: {site.surveyor_name}</div>}
-        {site.general_notes && <div className="small" style={{ marginTop: 8, whiteSpace: "pre-wrap" }}>{site.general_notes}</div>}
+        {(site.city || site.state || site.zip) && (
+          <div className="site-meta">
+            <IconMapPin size={14} style={{ opacity: 0 }} />
+            <span>{site.city}{site.city && site.state ? ", " : ""}{site.state} {site.zip}</span>
+          </div>
+        )}
+        {site.contact_name && (
+          <div className="site-meta">
+            <IconUser size={14} />
+            <span>{site.contact_name} {site.contact_phone ? `· ${site.contact_phone}` : ""}</span>
+          </div>
+        )}
+        {site.surveyor_name && (
+          <div className="site-meta">
+            <IconUser size={14} />
+            <span>Surveyor: {site.surveyor_name}</span>
+          </div>
+        )}
+        {site.general_notes && <div className="small" style={{ marginTop: 10, whiteSpace: "pre-wrap", color: "var(--text-secondary)" }}>{site.general_notes}</div>}
 
-        <div className="row" style={{ marginTop: 12, flexWrap: "wrap" }}>
-          <Link to={`/sites/${site.client_uuid}/survey`} className="btn btn-primary">+ Add Items</Link>
-          <Link to={`/sites/${id}/edit`} className="btn">Edit Site</Link>
-          <Link to={`/sites/${id}/export`} className="btn">Export</Link>
-          <button className="btn btn-danger" onClick={deleteSite}>Delete</button>
+        <div className="row" style={{ marginTop: 16, flexWrap: "wrap" }}>
+          <Link to={`/sites/${site.client_uuid}/survey`} className="btn btn-primary">
+            <IconPlus size={18} />
+            Add Items
+          </Link>
+          <Link to={`/sites/${id}/edit`} className="btn">
+            <IconEdit size={16} />
+            Edit
+          </Link>
+          <Link to={`/sites/${id}/export`} className="btn">
+            <IconDownload size={16} />
+            Export
+          </Link>
+          <button className="btn btn-danger" onClick={deleteSite}>
+            <IconTrash size={16} />
+          </button>
         </div>
       </div>
 
       {visibleItems.length === 0 ? (
         <div className="empty">
-          <div className="big">📷</div>
+          <div className="big"><IconCamera size={48} /></div>
           <div>No items yet.</div>
-          <Link to={`/sites/${site.client_uuid}/survey`} className="btn btn-primary" style={{ marginTop: 12 }}>Start Surveying</Link>
+          <Link to={`/sites/${site.client_uuid}/survey`} className="btn btn-primary" style={{ marginTop: 16 }}>
+            <IconPlus size={18} />
+            Start Surveying
+          </Link>
         </div>
       ) : (
         cats.map((cat) => (
           <div key={cat}>
-            <h3 style={{ fontSize: 15, color: "var(--brand)", margin: "16px 0 6px", borderBottom: "1px solid var(--border)", paddingBottom: 4 }}>
-              {cat} <span className="muted tiny">({byCat.get(cat)!.length})</span>
-            </h3>
+            <div className="section-header">
+              {cat} <span style={{ opacity: 0.5 }}>({byCat.get(cat)!.length})</span>
+            </div>
             {byCat.get(cat)!.map((it) => {
               const imgs = imgByItem.get(it.client_uuid) ?? [];
               const isOpen = expanded === it.client_uuid;
@@ -279,9 +322,12 @@ function ItemDisplay({
   if (isEditing) {
     return (
       <div className="item-card" onClick={(e) => e.stopPropagation()}>
-        <div className="row between" style={{ marginBottom: 8 }}>
+        <div className="row between" style={{ marginBottom: 10 }}>
           <span className="badge badge-cat">{item.category}</span>
-          <button className="btn btn-ghost" style={{ padding: "2px 8px", fontSize: 13 }} onClick={onCancelEdit}>Cancel</button>
+          <button className="btn btn-ghost" style={{ padding: "4px 10px", fontSize: 13 }} onClick={onCancelEdit}>
+            <IconX size={16} />
+            Cancel
+          </button>
         </div>
         <div className="field">
           <label>Label / Location</label>
@@ -301,7 +347,7 @@ function ItemDisplay({
                   style={{ position: "absolute", top: -4, right: -4, padding: "2px 6px", fontSize: 12, borderRadius: "50%", minWidth: 24 }}
                   onClick={(e) => { e.stopPropagation(); deleteImage(img.client_uuid); }}
                   title="Remove photo"
-                >×</button>
+                ><IconX size={12} /></button>
               </div>
             ))}
           </div>
@@ -313,7 +359,7 @@ function ItemDisplay({
             disabled={addingPhotos}
             style={{ flex: 1 }}
           >
-            {addingPhotos ? "Adding…" : "📷 Add Photos"}
+            {addingPhotos ? "Adding…" : (<><IconCamera size={18} /> Add Photos</>)}
           </button>
           <input
             ref={editFileRef}
@@ -324,9 +370,15 @@ function ItemDisplay({
             className="hidden-file"
             onChange={onAddPhotos}
           />
-          <button className="btn btn-primary" onClick={saveEdit} style={{ flex: 1 }}>✓ Save</button>
+          <button className="btn btn-primary" onClick={saveEdit} style={{ flex: 1 }}>
+            <IconCheck size={18} />
+            Save
+          </button>
         </div>
-        <button className="btn btn-danger btn-block" onClick={deleteItem}>Delete item</button>
+        <button className="btn btn-danger btn-block" onClick={deleteItem}>
+          <IconTrash size={16} />
+          Delete item
+        </button>
       </div>
     );
   }
@@ -339,10 +391,10 @@ function ItemDisplay({
           {item.sync_status === "pending" && <span className="badge badge-pending">pending</span>}
           <button
             className="btn btn-ghost"
-            style={{ padding: "2px 8px", fontSize: 13 }}
+            style={{ padding: "4px 10px", fontSize: 13 }}
             onClick={(e) => { e.stopPropagation(); onEdit(); }}
             title="Edit item"
-          >Edit</button>
+          ><IconEdit size={16} /></button>
         </div>
       </div>
       {item.notes && <div className="notes-preview">{item.notes}</div>}

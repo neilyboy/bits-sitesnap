@@ -3,6 +3,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db";
 import { api } from "../lib/api";
 import { useState } from "react";
+import { IconChevronLeft, IconFileText, IconDownload, IconArchive } from "../components/Icons";
 
 export default function ExportPage() {
   const { id } = useParams<{ id: string }>();
@@ -49,45 +50,48 @@ export default function ExportPage() {
 
   return (
     <div>
-      <div className="row between" style={{ marginBottom: 12 }}>
-        <Link to={`/sites/${site.client_uuid}`} className="btn btn-ghost">‹ Back</Link>
-        <h2 style={{ margin: 0, fontSize: 18 }}>Export</h2>
+      <div className="row between" style={{ marginBottom: 16 }}>
+        <Link to={`/sites/${site.client_uuid}`} className="btn btn-ghost">
+          <IconChevronLeft size={20} />
+          Back
+        </Link>
+        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>Export</h2>
         <span />
       </div>
 
       <div className="card">
-        <strong>{site.business_name || "Untitled"}</strong>
-        <div className="small muted">{site.survey_date}</div>
+        <strong style={{ fontSize: 17 }}>{site.business_name || "Untitled"}</strong>
+        <div className="small muted" style={{ marginTop: 4 }}>{site.survey_date}</div>
         {site.sync_status === "pending" && (
-          <div className="small" style={{ color: "var(--warning)", marginTop: 8 }}>
-            ⚠ This site has unsynced changes. Sync before exporting to include the latest data.
+          <div className="small" style={{ color: "var(--warning)", marginTop: 10 }}>
+            This site has unsynced changes. Sync before exporting to include the latest data.
           </div>
         )}
       </div>
 
       <div className="export-btns">
         <button className="btn btn-primary btn-lg" onClick={() => download("pdf")} disabled={!!busy}>
-          {busy === "pdf" ? <><span className="spinner dark" /> Generating PDF…</> : "📄 Download PDF Report"}
+          {busy === "pdf" ? <><span className="spinner" /> Generating PDF…</> : (<><IconFileText size={20} /> Download PDF Report</>)}
         </button>
         <button className="btn btn-lg" onClick={() => download("html")} disabled={!!busy}>
-          {busy === "html" ? <><span className="spinner dark" /> Generating HTML…</> : "🌐 Download HTML Report"}
+          {busy === "html" ? <><span className="spinner dark" /> Generating HTML…</> : (<><IconFileText size={20} /> Download HTML Report</>)}
         </button>
         <button className="btn btn-lg" onClick={() => download("zip")} disabled={!!busy}>
-          {busy === "zip" ? <><span className="spinner dark" /> Generating ZIP…</> : "🗜 Download ZIP (images + text overlay)"}
+          {busy === "zip" ? <><span className="spinner dark" /> Generating ZIP…</> : (<><IconArchive size={20} /> Download ZIP (images + text overlay)</>)}
         </button>
       </div>
 
       {error && <div className="small" style={{ color: "var(--danger)", marginTop: 12 }}>{error}</div>}
 
       <div className="card" style={{ marginTop: 16 }}>
-        <div className="small muted">
-          <strong>PDF</strong> — formatted report with cover, summary table, and items grouped by category. Print-ready.
+        <div className="small" style={{ color: "var(--text-secondary)" }}>
+          <strong style={{ color: "var(--text)" }}>PDF</strong> — formatted report with cover, summary table, and items grouped by category. Print-ready.
         </div>
-        <div className="small muted" style={{ marginTop: 8 }}>
-          <strong>HTML</strong> — single self-contained file with embedded images. Click any photo to zoom.
+        <div className="small" style={{ color: "var(--text-secondary)", marginTop: 10 }}>
+          <strong style={{ color: "var(--text)" }}>HTML</strong> — single self-contained file with embedded images. Click any photo to zoom.
         </div>
-        <div className="small muted" style={{ marginTop: 8 }}>
-          <strong>ZIP</strong> — every image with its notes overlaid in a solid bar at the bottom, plus manifest.csv. Extract to your network share.
+        <div className="small" style={{ color: "var(--text-secondary)", marginTop: 10 }}>
+          <strong style={{ color: "var(--text)" }}>ZIP</strong> — every image with its notes overlaid in a solid bar at the bottom, plus manifest.csv. Extract to your network share.
         </div>
       </div>
     </div>
