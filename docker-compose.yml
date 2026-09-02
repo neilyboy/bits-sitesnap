@@ -1,0 +1,29 @@
+services:
+  sitesnap:
+    build: .
+    image: sitesnap:latest
+    container_name: sitesnap
+    ports:
+      - "${SITESNAP_PORT:-8000}:8000"
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config:ro
+    env_file:
+      - ./config/.env
+    environment:
+      - DATA_DIR=/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    # GPU passthrough for faster-whisper. Remove this block if no NVIDIA GPU.
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

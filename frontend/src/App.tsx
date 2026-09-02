@@ -1,0 +1,77 @@
+import { useEffect, useState, type ReactNode } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLiveQuery } from "dexie-react-hooks";
+import { db, getSetting } from "./db";
+import { isSyncing, pendingCount, subscribeSync, syncNow } from "./lib/sync";
+
+export default function App({ children }: { children: ReactNode }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [tick, setTick] = useState(0);
+  const syncing = isSyncing();
+  const pending = useLiveQuery(() => pendingCount(), []);
+  const lastSync = useLiveQuery(() => getSetting("last_sync_at", ""), []);
+
+  // Re-render when sync state changes.
+  useEffect(() => {
+    const unsub = subscribeSync(() => setTick((t) => t + 1));
+    return unsub;
+  }, []);
+
+  const isLogin = location.pathname === "/login";
+  const isSurvey = location.pathname.endsWith("/survey");
+
+  const pendingTotal = pending?.total ?? 0;
+
+  async function handleSync() {
+    const r = await syncNow();
+    if (!r.ok && r.detail === "offline") {
+      alert("You're offline. Sync will run automatically when you reconnect.");
+    } else if (!r.ok) {
+      alert("Sync failed: " + r.detail);
+    }
+  }
+
+  return (
+    <div className="app">
+      <header className="app-header">
+        <Link to="/" style={{ display: "flex", alignItems: "center", gap: 8, color: "#fff" }}>
+          <img src="/logo.svg" alt="SiteSnap" className="logo" />
+        </Link>
+        <div className="title">SiteSnap</div>
+        {!isLogin && (
+          <button className="icon-btn" onClick={() => navigate("/settings")}>⚙</button>
+        )}
+      </header>
+
+      <main className="app-main">{children}</main>
+
+      {!isLogin && (
+        <div className={`sync-bar ${pendingTotal === 0 ? "synced" : ""}`}>
+          <div className="status">
+            <span className="pending-dot" />
+            {syncing ? (
+              <><span className="spinner" /> Syncing…</>
+            ) : pendingTotal > 0 ? (
+              <>{pendingTotal} pending</>
+            ) : (
+              <>Synced{lastSync ? ` · ${formatTime(lastSync)}` : ""}</>
+            )}
+          </div>
+          <button className="sync-btn" onClick={handleSync} disabled={syncing}>
+            Sync now
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function formatTime(iso: string): string {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return "";
+  }
+}

@@ -1,0 +1,150 @@
+import Dexie, { Table } from "dexie";
+
+export interface SiteRow {
+  id?: number; // server id, undefined until synced
+  client_uuid: string;
+  business_name: string;
+  address_line1: string;
+  address_line2: string;
+  city: string;
+  state: string;
+  zip: string;
+  contact_name: string;
+  contact_phone: string;
+  contact_email: string;
+  surveyor_name: string;
+  survey_date: string;
+  general_notes: string;
+  created_at: string;
+  updated_at: string;
+  server_updated_at?: string;
+  sync_status: "pending" | "synced";
+  deleted: boolean;
+}
+
+export interface ItemRow {
+  id?: number;
+  client_uuid: string;
+  site_client_uuid: string;
+  category: string;
+  label: string;
+  notes: string;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+  server_updated_at?: string;
+  sync_status: "pending" | "synced";
+  deleted: boolean;
+}
+
+export interface ImageRow {
+  id?: number;
+  client_uuid: string;
+  item_client_uuid: string;
+  // Blob stored in IndexedDB (offline). Cleared after sync to save space? No — keep
+  // so the device can still display them offline. Server stores its own copy.
+  blob: Blob;
+  thumbnail_data_url?: string; // small data URL for fast list rendering
+  filename: string;
+  mime: string;
+  width: number;
+  height: number;
+  taken_at: string;
+  sha256: string;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+  server_updated_at?: string;
+  sync_status: "pending" | "synced";
+  deleted: boolean;
+  // Track whether the binary has been uploaded to the server.
+  binary_synced: boolean;
+}
+
+export interface AudioRow {
+  id?: number;
+  client_uuid: string;
+  item_client_uuid: string;
+  blob?: Blob; // present until uploaded
+  duration_sec: number;
+  transcript_text: string;
+  transcript_status: "pending" | "done" | "failed";
+  transcript_error: string;
+  created_at: string;
+  updated_at: string;
+  server_updated_at?: string;
+  sync_status: "pending" | "synced";
+  deleted: boolean;
+  binary_synced: boolean;
+}
+
+export interface CategoryRow {
+  id?: number;
+  name: string;
+  slug: string;
+  sort_order: number;
+  is_default: boolean;
+}
+
+export interface SyncLogRow {
+  id?: number;
+  at: string;
+  direction: "push" | "pull";
+  detail: string;
+  ok: boolean;
+}
+
+export interface SettingRow {
+  key: string;
+  value: string;
+}
+
+class SiteSnapDB extends Dexie {
+  sites!: Table<SiteRow, string>;
+  items!: Table<ItemRow, string>;
+  images!: Table<ImageRow, string>;
+  audio!: Table<AudioRow, string>;
+  categories!: Table<CategoryRow, string>;
+  sync_log!: Table<SyncLogRow, number>;
+  settings!: Table<SettingRow, string>;
+
+  constructor() {
+    super("sitesnap");
+    this.version(1).stores({
+      sites: "client_uuid, sync_status, deleted, server_updated_at, survey_date",
+      items: "client_uuid, site_client_uuid, sync_status, deleted, server_updated_at, sort_order",
+      images: "client_uuid, item_client_uuid, sync_status, deleted, binary_synced, sort_order",
+      audio: "client_uuid, item_client_uuid, sync_status, deleted, binary_synced",
+      categories: "slug, sort_order",
+      sync_log: "++id, at",
+      settings: "key",
+    });
+  }
+}
+
+export const db = new SiteSnapDB();
+
+// ---- Setting helpers ----
+export async function getSetting(key: string, fallback = ""): Promise<string> {
+  const row = await db.settings.get(key);
+  return row?.value ?? fallback;
+}
+
+export async function setSetting(key: string, value: string): Promise<void> {
+  await db.settings.put({ key, value });
+}
+
+export async function logSync(direction: "push" | "pull", detail: string, ok: boolean): Promise<void> {
+  await db.sync_log.add({
+    at: new Date().toISOString(),
+    direction,
+    detail,
+    ok,
+  });
+  // Keep last 100 entries.
+  const count = await db.sync_log.count();
+  if (count > 100) {
+    const oldest = await db.sync_log.orderBy("at").limit(count - 100).primaryKeys();
+    await db.sync_log.bulkDelete(oldest);
+  }
+}

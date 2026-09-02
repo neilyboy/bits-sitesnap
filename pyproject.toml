@@ -1,0 +1,29 @@
+[project]
+name = "sitesnap-backend"
+version = "0.1.0"
+description = "SiteSnap backend: offline-first site survey API, transcription, exports."
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "sqlalchemy>=2.0",
+    "alembic>=1.13",
+    "argon2-cffi>=23.1",
+    "pyjwt>=2.8",
+    "python-multipart>=0.0.9",
+    "pillow>=10.3",
+    "weasyprint>=62",
+    "jinja2>=3.1",
+    "faster-whisper>=1.0",
+    "numpy>=1.26",
+    "itsdangerous>=2.2",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["backend"]

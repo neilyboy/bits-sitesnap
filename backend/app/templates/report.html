@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{ site.business_name or "Untitled Site" }} — Site Survey Report</title>
+<style>
+  :root {
+    --brand: {{ brand_color }};
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "DejaVu Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    margin: 0;
+    color: #1a1a1a;
+    font-size: 11pt;
+    line-height: 1.45;
+  }
+  /* ---- Cover ---- */
+  .cover {
+    page-break-after: always;
+    padding: 60pt 48pt;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .cover .logo-wrap {
+    background: var(--brand);
+    padding: 28pt 32pt;
+    border-radius: 6pt;
+    color: #fff;
+  }
+  .cover .logo-wrap svg { height: 56pt; width: auto; }
+  .cover .logo-wrap .app-name {
+    font-size: 14pt;
+    letter-spacing: 2pt;
+    opacity: 0.85;
+    margin-top: 6pt;
+  }
+  .cover h1 {
+    font-size: 30pt;
+    margin: 36pt 0 8pt;
+    color: var(--brand);
+  }
+  .cover .subtitle { font-size: 14pt; color: #555; margin-bottom: 28pt; }
+  .cover .meta { font-size: 11pt; }
+  .cover .meta table { border-collapse: collapse; }
+  .cover .meta td { padding: 4pt 12pt 4pt 0; vertical-align: top; }
+  .cover .meta td.k { color: #777; font-weight: 600; width: 120pt; }
+  .cover .footer { font-size: 9pt; color: #888; }
+
+  /* ---- Summary table ---- */
+  .summary { padding: 24pt 36pt; }
+  .summary h2 { color: var(--brand); border-bottom: 2pt solid var(--brand); padding-bottom: 4pt; }
+  table.summary-table { width: 100%; border-collapse: collapse; font-size: 9.5pt; }
+  table.summary-table th, table.summary-table td {
+    border: 0.5pt solid #ccc;
+    padding: 5pt 7pt;
+    text-align: left;
+    vertical-align: top;
+  }
+  table.summary-table th { background: #f3f4f6; }
+  table.summary-table td.num { text-align: center; width: 28pt; }
+  table.summary-table td.photos { text-align: center; width: 50pt; }
+
+  /* ---- Items ---- */
+  .category { padding: 18pt 36pt 0; page-break-inside: avoid; }
+  .category h2 {
+    color: var(--brand);
+    border-bottom: 1pt solid #ddd;
+    padding-bottom: 3pt;
+    margin-bottom: 10pt;
+    page-break-after: avoid;
+  }
+  .item { margin-bottom: 16pt; page-break-inside: avoid; }
+  .item h3 { font-size: 12pt; margin: 0 0 4pt; color: #222; }
+  .item .label-tag {
+    display: inline-block;
+    background: #eef2f7;
+    color: var(--brand);
+    border-radius: 3pt;
+    padding: 1pt 6pt;
+    font-size: 8.5pt;
+    margin-right: 6pt;
+    font-weight: 600;
+  }
+  .item .notes { margin: 6pt 0; white-space: pre-wrap; }
+  .item .transcripts { margin: 4pt 0 6pt; color: #444; font-style: italic; }
+  .item .transcripts .tlabel { font-style: normal; font-weight: 600; color: #777; }
+  .photos { display: flex; flex-wrap: wrap; gap: 8pt; margin-top: 6pt; }
+  .photos figure { margin: 0; width: 220pt; page-break-inside: avoid; }
+  .photos img { width: 100%; height: auto; border: 0.5pt solid #ddd; border-radius: 3pt; }
+  .photos figcaption {
+    font-size: 8.5pt; color: #666; margin-top: 2pt; word-break: break-word;
+  }
+
+  /* ---- HTML-only lightbox ---- */
+  .lightbox {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+    align-items: center; justify-content: center; z-index: 1000; cursor: zoom-out;
+  }
+  .lightbox img { max-width: 95vw; max-height: 95vh; }
+  .print-only { display: none; }
+  @media print {
+    .html-only { display: none !important; }
+    .print-only { display: block; }
+    .photos figure { width: 45%; }
+  }
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <div>
+    <div class="logo-wrap">
+      {{ logo_svg|safe }}
+      <div class="app-name">SITESNAP</div>
+    </div>
+    <h1>Site Survey Report</h1>
+    <div class="subtitle">{{ site.business_name or "Untitled Site" }}</div>
+    <div class="meta">
+      <table>
+        {% if site.address_line1 %}<tr><td class="k">Address</td><td>
+          {{ site.address_line1 }}{% if site.address_line2 %}<br>{{ site.address_line2 }}{% endif %}
+          {% if site.city or site.state or site.zip %}<br>{{ site.city }}{{ ", " if site.city and site.state }}{{ site.state }} {{ site.zip }}{% endif %}
+        </td></tr>{% endif %}
+        {% if site.contact_name %}<tr><td class="k">Contact</td><td>{{ site.contact_name }}</td></tr>{% endif %}
+        {% if site.contact_phone %}<tr><td class="k">Phone</td><td>{{ site.contact_phone }}</td></tr>{% endif %}
+        {% if site.contact_email %}<tr><td class="k">Email</td><td>{{ site.contact_email }}</td></tr>{% endif %}
+        {% if site.surveyor_name %}<tr><td class="k">Surveyor</td><td>{{ site.surveyor_name }}</td></tr>{% endif %}
+        {% if site.survey_date %}<tr><td class="k">Survey Date</td><td>{{ site.survey_date }}</td></tr>{% endif %}
+        <tr><td class="k">Generated</td><td>{{ generated_at }}</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="footer">Generated by SiteSnap • {{ generated_at }}</div>
+</section>
+
+<section class="summary">
+  <h2>Summary</h2>
+  <table class="summary-table">
+    <thead>
+      <tr><th class="num">#</th><th>Category</th><th>Label</th><th>Notes</th><th class="photos">Photos</th></tr>
+    </thead>
+    <tbody>
+      {% for it in items %}
+      <tr>
+        <td class="num">{{ loop.index }}</td>
+        <td>{{ it.category }}</td>
+        <td>{{ it.label or "—" }}</td>
+        <td>{{ (it.notes[:80] + '…') if it.notes|length > 80 else it.notes }}</td>
+        <td class="photos">{{ it.images|length }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% for cat in categories_in_order %}
+<section class="category">
+  <h2>{{ cat }}</h2>
+  {% for it in items if it.category == cat %}
+  <div class="item">
+    <h3><span class="label-tag">{{ loop.index }}</span>{{ it.label or "Untitled" }}</h3>
+    {% if it.notes %}<div class="notes">{{ it.notes }}</div>{% endif %}
+    {% for t in it.audio_transcripts %}
+      <div class="transcripts"><span class="tlabel">Voice note:</span> {{ t }}</div>
+    {% endfor %}
+    {% if it.images %}
+    <div class="photos">
+      {% for img in it.images %}
+      <figure>
+        {% if img.data_url %}
+          <img src="{{ img.data_url }}" alt="{{ it.label }}" data-full="{{ img.data_url }}" class="html-only">
+        {% elif img.abs_path and img.abs_path.exists() %}
+          <img src="file://{{ img.abs_path }}" alt="{{ it.label }}">
+        {% endif %}
+        <figcaption>{{ img.filename }}</figcaption>
+      </figure>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</section>
+{% endfor %}
+
+<div class="lightbox html-only" id="lightbox"><img id="lightbox-img" alt=""></div>
+
+<script class="html-only">
+  (function() {
+    var lb = document.getElementById('lightbox');
+    var lbImg = document.getElementById('lightbox-img');
+    document.querySelectorAll('.photos img').forEach(function(img) {
+      img.addEventListener('click', function(e) {
+        lbImg.src = img.getAttribute('data-full') || img.src;
+        lb.style.display = 'flex';
+      });
+    });
+    lb.addEventListener('click', function() { lb.style.display = 'none'; });
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') lb.style.display = 'none'; });
+  })();
+</script>
+
+</body>
+</html>

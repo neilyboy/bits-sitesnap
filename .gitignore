@@ -1,0 +1,38 @@
+# Data & runtime
+data/*
+!data/.gitkeep
+config/*
+!config/.gitkeep
+!config/.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+*.db
+*.sqlite
+*.sqlite3
+
+# Node / frontend
+node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/build/
+frontend/tsconfig.tsbuildinfo
+*.log
+npm-debug.log*
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp

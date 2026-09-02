@@ -1,0 +1,13 @@
+{
+  "name": "SiteSnap",
+  "short_name": "SiteSnap",
+  "description": "Fast offline site survey tool for Verkada installs.",
+  "theme_color": "#0B1F3A",
+  "background_color": "#0B1F3A",
+  "display": "standalone",
+  "orientation": "portrait",
+  "start_url": "/",
+  "icons": [
+    { "src": "/logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
