@@ -146,7 +146,7 @@ def push_sites(s: Session, payload: Iterable[SiteIn]) -> list[Site]:
                 survey_date=rec.survey_date,
                 general_notes=rec.general_notes,
                 sync_status="synced",
-                deleted=False,
+                deleted=rec.deleted,
                 server_updated_at=now,
             )
             s.add(obj)
@@ -167,6 +167,7 @@ def push_sites(s: Session, payload: Iterable[SiteIn]) -> list[Site]:
             existing.survey_date = rec.survey_date
             existing.general_notes = rec.general_notes
             existing.sync_status = "synced"
+            existing.deleted = rec.deleted
             existing.server_updated_at = now
             results.append(existing)
     s.flush()
@@ -196,7 +197,7 @@ def push_items(s: Session, payload: Iterable[ItemIn], site_map: dict[str, int]) 
                 notes=rec.notes,
                 sort_order=rec.sort_order,
                 sync_status="synced",
-                deleted=False,
+                deleted=rec.deleted,
                 server_updated_at=now,
             )
             s.add(obj)
@@ -208,6 +209,7 @@ def push_items(s: Session, payload: Iterable[ItemIn], site_map: dict[str, int]) 
             existing.notes = rec.notes
             existing.sort_order = rec.sort_order
             existing.sync_status = "synced"
+            existing.deleted = rec.deleted
             existing.server_updated_at = now
             results.append(existing)
     s.flush()
@@ -241,7 +243,7 @@ def push_image_metas(
                 sha256=rec.sha256,
                 sort_order=rec.sort_order,
                 sync_status="synced",
-                deleted=False,
+                deleted=rec.deleted,
                 server_updated_at=now,
             )
             s.add(obj)
@@ -256,6 +258,7 @@ def push_image_metas(
             existing.sha256 = rec.sha256
             existing.sort_order = rec.sort_order
             existing.sync_status = "synced"
+            existing.deleted = rec.deleted
             existing.server_updated_at = now
             results.append(existing)
     s.flush()
@@ -285,7 +288,7 @@ def push_audio_metas(
                 transcript_text=rec.transcript_text,
                 transcript_status="done" if rec.transcript_text else rec.transcript_status,
                 sync_status="synced",
-                deleted=False,
+                deleted=rec.deleted,
                 server_updated_at=now,
             )
             s.add(obj)
@@ -302,6 +305,7 @@ def push_audio_metas(
                 existing.transcript_text = rec.transcript_text
                 existing.transcript_status = "done"
             existing.sync_status = "synced"
+            existing.deleted = rec.deleted
             existing.server_updated_at = now
             results.append(existing)
     s.flush()

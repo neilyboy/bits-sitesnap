@@ -105,6 +105,7 @@ export interface SiteInDTO {
   surveyor_name: string;
   survey_date: string;
   general_notes: string;
+  deleted: boolean;
 }
 
 export interface ItemInDTO {
@@ -114,6 +115,7 @@ export interface ItemInDTO {
   label: string;
   notes: string;
   sort_order: number;
+  deleted: boolean;
 }
 
 export interface ImageMetaDTO {
@@ -126,6 +128,7 @@ export interface ImageMetaDTO {
   taken_at: string;
   sha256: string;
   sort_order: number;
+  deleted: boolean;
 }
 
 export interface AudioMetaDTO {
@@ -134,6 +137,7 @@ export interface AudioMetaDTO {
   duration_sec: number;
   transcript_text: string;
   transcript_status: string;
+  deleted: boolean;
 }
 
 export interface SyncPushResponse {

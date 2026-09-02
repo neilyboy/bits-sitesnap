@@ -56,6 +56,7 @@ class SiteBase(BaseModel):
 class SiteIn(SiteBase):
     client_uuid: str
     survey_date: str = ""
+    deleted: bool = False
 
 
 class SiteOut(SiteBase):
@@ -81,6 +82,7 @@ class ItemBase(BaseModel):
 class ItemIn(ItemBase):
     client_uuid: str
     site_client_uuid: str
+    deleted: bool = False
 
 
 class ItemOut(ItemBase):
@@ -107,6 +109,7 @@ class ImageMeta(BaseModel):
     taken_at: str = ""
     sha256: str = ""
     sort_order: int = 0
+    deleted: bool = False
 
 
 class ImageOut(BaseModel):
@@ -138,6 +141,7 @@ class AudioMeta(BaseModel):
     # and the server will skip Whisper transcription.
     transcript_text: str = ""
     transcript_status: str = "pending"
+    deleted: bool = False
 
 
 class AudioOut(BaseModel):

@@ -343,6 +343,7 @@ function siteToDto(s: SiteRow): SiteInDTO {
     surveyor_name: s.surveyor_name,
     survey_date: s.survey_date,
     general_notes: s.general_notes,
+    deleted: s.deleted,
   };
 }
 
@@ -354,6 +355,7 @@ function itemToDto(i: ItemRow): ItemInDTO {
     label: i.label,
     notes: i.notes,
     sort_order: i.sort_order,
+    deleted: i.deleted,
   };
 }
 
@@ -368,6 +370,7 @@ function imageMetaToDto(img: ImageRow): ImageMetaDTO {
     taken_at: img.taken_at,
     sha256: img.sha256,
     sort_order: img.sort_order,
+    deleted: img.deleted,
   };
 }
 
@@ -378,6 +381,7 @@ function audioMetaToDto(a: AudioRow): AudioMetaDTO {
     duration_sec: a.duration_sec,
     transcript_text: a.transcript_text,
     transcript_status: a.transcript_status,
+    deleted: a.deleted,
   };
 }
 

@@ -90,12 +90,16 @@ export default function SiteDetailPage() {
   }
 
   async function deleteSite() {
-    if (!site || !confirm(`Delete site "${site.business_name}"? This cannot be undone (after sync).`)) return;
+    if (!site || !confirm(`Delete site "${site.business_name}"? This will permanently remove the site and all its items and photos (after sync).`)) return;
     const now = new Date().toISOString();
     await db.sites.update(site.client_uuid, { deleted: true, updated_at: now, sync_status: "pending" });
     const siteItems = await db.items.where("site_client_uuid").equals(site.client_uuid).toArray();
     for (const it of siteItems) {
       await db.items.update(it.client_uuid, { deleted: true, updated_at: now, sync_status: "pending" });
+      const itemImages = await db.images.where("item_client_uuid").equals(it.client_uuid).toArray();
+      for (const img of itemImages) {
+        await db.images.update(img.client_uuid, { deleted: true, updated_at: now, sync_status: "pending" });
+      }
     }
     navigate("/");
   }
