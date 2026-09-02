@@ -109,7 +109,8 @@
     font-weight: 700;
     color: #333;
   }
-  table.summary-table tr:nth-child(even) { background: var(--bg-alt); }
+  table.summary-table td { background: #fff; }
+  table.summary-table tr.even td { background: var(--bg-alt); }
   table.summary-table th.num, table.summary-table td.num {
     text-align: center;
     vertical-align: middle;
@@ -119,7 +120,6 @@
     text-align: center;
     vertical-align: middle;
     width: 50pt;
-    color: #555;
   }
   table.summary-table th.cat, table.summary-table td.cat { width: 85pt; }
   table.summary-table th.label, table.summary-table td.label { width: 95pt; }
@@ -253,7 +253,7 @@
     </thead>
     <tbody>
       {% for it in items %}
-      <tr>
+      <tr class="{% if loop.index0 % 2 == 1 %}even{% endif %}">
         <td class="num">{{ loop.index }}</td>
         <td class="cat">{{ it.category }}</td>
         <td class="label">{{ it.label or "—" }}</td>
