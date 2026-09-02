@@ -2,6 +2,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db";
 import { useState } from "react";
+import ThumbImg from "../components/ThumbImg";
 
 const DEFAULT_ORDER = ["Cameras", "Access Control", "Intercom", "Air Quality", "Alarms", "Workplace", "Other"];
 
@@ -107,9 +108,10 @@ export default function SiteDetailPage() {
                   {imgs.length > 0 && (
                     <div className="thumbs">
                       {imgs.slice(0, isOpen ? imgs.length : 4).map((img) => (
-                        <img
+                        <ThumbImg
                           key={img.client_uuid}
-                          src={img.thumbnail_data_url ?? (img.blob ? URL.createObjectURL(img.blob) : "")}
+                          blob={img.blob}
+                          dataUrl={img.thumbnail_data_url}
                           alt={it.label}
                         />
                       ))}

@@ -6,6 +6,7 @@ import { v7 as uuidv7 } from "uuid";
 import { processImage } from "../lib/image";
 import { useSpeechRecognition } from "../hooks/useSpeechRecognition";
 import { useAudioRecorder } from "../hooks/useAudioRecorder";
+import ThumbImg from "../components/ThumbImg";
 
 const DEFAULT_CATEGORIES = ["Cameras", "Access Control", "Intercom", "Air Quality", "Alarms", "Workplace", "Other"];
 
@@ -35,12 +36,14 @@ export default function SurveyPage() {
     return names.length ? names : DEFAULT_CATEGORIES;
   }, [categories]);
 
+  // When speech produces a final transcript (listening stopped with text),
+  // append it to notes. This fires once when the user taps Stop.
   useEffect(() => {
-    if (speech.transcript && !speech.listening) {
-      setNotes((n) => (n ? n + " " : "") + speech.transcript);
+    if (!speech.listening && speech.transcript) {
+      setNotes((n) => (n ? n + " " : "") + speech.transcript.trim());
       speech.reset();
     }
-  }, [speech.transcript, speech.listening]);
+  }, [speech.listening, speech.transcript]);
 
   function showToast(msg: string) {
     setToast(msg);
@@ -62,7 +65,7 @@ export default function SurveyPage() {
       }
       showToast(`${files.length} photo${files.length > 1 ? "s" : ""} added`);
     } catch (err) {
-      console.error(err);
+      console.error("Photo processing failed:", err);
       showToast("Photo processing failed");
     } finally {
       setBusy(false);
@@ -131,13 +134,6 @@ export default function SurveyPage() {
   async function stopAndSaveAudio() {
     const result = await recorder.stop();
     if (!result || !site) return;
-    // Attach transcript (if Web Speech produced one) to current notes, otherwise
-    // store the audio clip for server-side transcription.
-    if (speech.transcript) {
-      setNotes((n) => (n ? n + " " : "") + speech.transcript);
-      speech.reset();
-      return;
-    }
     // No Web Speech transcript — store audio clip for server transcription.
     const now = new Date().toISOString();
     const audioUuid = uuidv7();
@@ -180,11 +176,12 @@ export default function SurveyPage() {
   function toggleRecording() {
     if (recorder.recording) {
       stopAndSaveAudio();
+    } else if (speech.listening) {
+      speech.stop();
     } else {
       // Prefer Web Speech for instant results; fall back to MediaRecorder.
       if (speech.supported) {
-        if (speech.listening) speech.stop();
-        else speech.start();
+        speech.start();
       } else {
         recorder.start();
       }
@@ -193,6 +190,10 @@ export default function SurveyPage() {
 
   if (!site) return <div className="empty">Loading…</div>;
   const visibleItems = (items ?? []).filter((i) => !i.deleted);
+
+  // The textarea shows notes + live interim transcript (read-only overlay).
+  // The interim text is NOT stored in notes — it's just for live display.
+  const displayNotes = notes + (speech.interimTranscript ? " " + speech.interimTranscript : "");
 
   return (
     <div>
@@ -236,10 +237,18 @@ export default function SurveyPage() {
         <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder={`e.g. Front door, Camera 12`} />
       </div>
       <div className="field">
-        <label>Notes</label>
+        <label>Notes {speech.listening && <span className="muted tiny">(listening…)</span>}</label>
         <textarea
-          value={notes + (speech.interimTranscript ? " " + speech.interimTranscript : "")}
-          onChange={(e) => setNotes(e.target.value)}
+          value={displayNotes}
+          onChange={(e) => {
+            // Only update notes from the typed portion, not the interim overlay.
+            // If speech is listening, ignore manual edits (the interim text
+            // would get captured). If not listening, the display == notes.
+            if (!speech.listening) {
+              setNotes(e.target.value);
+            }
+          }}
+          readOnly={speech.listening}
           placeholder="Tap 🎤 to dictate, or type notes here…"
         />
       </div>
@@ -268,7 +277,7 @@ export default function SurveyPage() {
       {/* Existing items list */}
       <h3 style={{ fontSize: 15, color: "var(--brand)", margin: "16px 0 6px" }}>Items ({visibleItems.length})</h3>
       {visibleItems.map((it) => (
-        <ItemRow key={it.client_uuid} item={it} />
+        <ItemRowCard key={it.client_uuid} item={it} />
       ))}
 
       {/* Floating capture button */}
@@ -295,7 +304,7 @@ export default function SurveyPage() {
   );
 }
 
-function ItemRow({ item }: { item: ItemRow }) {
+function ItemRowCard({ item }: { item: ItemRow }) {
   const images = useLiveQuery(
     () => db.images.where("item_client_uuid").equals(item.client_uuid).reverse().sortBy("sort_order"),
     [item.client_uuid]
@@ -335,9 +344,10 @@ function ItemRow({ item }: { item: ItemRow }) {
       {visibleImgs.length > 0 && (
         <div className="thumbs">
           {visibleImgs.slice(0, open ? visibleImgs.length : 4).map((img) => (
-            <img
+            <ThumbImg
               key={img.client_uuid}
-              src={img.thumbnail_data_url ?? (img.blob ? URL.createObjectURL(img.blob) : "")}
+              blob={img.blob}
+              dataUrl={img.thumbnail_data_url}
               alt={item.label}
             />
           ))}

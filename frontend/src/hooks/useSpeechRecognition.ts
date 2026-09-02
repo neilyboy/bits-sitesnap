@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-// Minimal typings for the Web Speech API (not in lib.dom.d.ts in all TS versions).
+// Minimal typings for the Web Speech API.
 interface SpeechRecognitionResultLike {
   0: { transcript: string };
   isFinal: boolean;
@@ -51,6 +51,8 @@ export function useSpeechRecognition(): UseSpeechRecognition {
   const [error, setError] = useState("");
   const recRef = useRef<SpeechRecognitionLike | null>(null);
   const finalRef = useRef("");
+  // Track whether the user wants to keep listening (for auto-restart).
+  const wantListenRef = useRef(false);
 
   const start = useCallback(() => {
     if (!supported) {
@@ -58,37 +60,66 @@ export function useSpeechRecognition(): UseSpeechRecognition {
       return;
     }
     setError("");
+    finalRef.current = "";
+    setTranscript("");
+    setInterimTranscript("");
+    wantListenRef.current = true;
+    startSession();
+  }, [supported]);
+
+  const startSession = useCallback(() => {
+    if (!wantListenRef.current) return;
     const Ctor = getCtor()!;
+    // Stop any existing recognition instance.
+    if (recRef.current) {
+      try { recRef.current.abort(); } catch {}
+      recRef.current = null;
+    }
     const rec = new Ctor();
     rec.lang = "en-US";
-    rec.continuous = true;
+    // continuous: false — each session handles ONE phrase.
+    // This avoids the cumulative interim result duplication that
+    // happens with continuous: true in Chrome.
+    rec.continuous = false;
     rec.interimResults = true;
     rec.onresult = (e) => {
-      // Rebuild final + interim from ALL results each time.
-      // Do NOT accumulate — Chrome fires onresult with resultIndex=0
-      // on every event with continuous:true, so accumulating would
-      // duplicate final segments on every fire.
-      let final = "";
-      let interim = "";
-      for (let i = 0; i < e.results.length; i++) {
-        const r = e.results[i];
-        if (r.isFinal) {
-          final += r[0].transcript;
-        } else {
-          interim += r[0].transcript;
-        }
+      // With continuous: false, e.results has a single entry that
+      // gets updated as the phrase is recognized. Take the last result.
+      const lastIdx = e.results.length - 1;
+      if (lastIdx < 0) return;
+      const r = e.results[lastIdx];
+      if (r.isFinal) {
+        finalRef.current += r[0].transcript;
+        setTranscript(finalRef.current);
+        setInterimTranscript("");
+      } else {
+        setInterimTranscript(r[0].transcript);
       }
-      finalRef.current = final;
-      setTranscript(final);
-      setInterimTranscript(interim);
     };
     rec.onerror = (e: any) => {
+      if (e?.error === "no-speech" || e?.error === "aborted") {
+        // These are benign — just restart.
+        return;
+      }
       setError(e?.error ?? "speech error");
+      wantListenRef.current = false;
       setListening(false);
     };
     rec.onend = () => {
-      setListening(false);
-      setInterimTranscript("");
+      // Auto-restart if the user still wants to listen (continuous: false
+      // ends after each phrase, so we restart for the next one).
+      if (wantListenRef.current) {
+        try {
+          rec.start();
+        } catch {
+          // If restart fails (e.g., too rapid), stop.
+          wantListenRef.current = false;
+          setListening(false);
+        }
+      } else {
+        setListening(false);
+        setInterimTranscript("");
+      }
     };
     recRef.current = rec;
     try {
@@ -96,12 +127,15 @@ export function useSpeechRecognition(): UseSpeechRecognition {
       setListening(true);
     } catch (e: any) {
       setError(e?.message ?? "failed to start");
+      wantListenRef.current = false;
     }
-  }, [supported]);
+  }, []);
 
   const stop = useCallback(() => {
-    recRef.current?.stop();
+    wantListenRef.current = false;
+    try { recRef.current?.stop(); } catch {}
     setListening(false);
+    setInterimTranscript("");
   }, []);
 
   const reset = useCallback(() => {
@@ -113,7 +147,8 @@ export function useSpeechRecognition(): UseSpeechRecognition {
 
   useEffect(() => {
     return () => {
-      recRef.current?.abort();
+      wantListenRef.current = false;
+      try { recRef.current?.abort(); } catch {}
     };
   }, []);
 
