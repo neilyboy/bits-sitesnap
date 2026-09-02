@@ -29,9 +29,9 @@ export default function SiteDetailPage() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [viewerBlob, setViewerBlob] = useState<Blob | undefined>(undefined);
-  const [viewerServerUrl, setViewerServerUrl] = useState<string | null>(null);
   const [viewerAlt, setViewerAlt] = useState("");
   const [viewerSaveUuid, setViewerSaveUuid] = useState<string | null>(null);
+  const [viewerServerUrl, setViewerServerUrl] = useState<string | null>(null);
   const [toast, setToast] = useState("");
 
   function showToast(msg: string) {

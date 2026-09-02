@@ -12,12 +12,23 @@ Built for technicians who work inside buildings with no cellular signal.
 - **Fast capture flow** — pick a category, snap 1+ photos, dictate or type a note, save. Repeat.
 - **Hybrid voice-to-text** — uses the browser's Web Speech API for instant on-device transcription when available; falls back to recording audio for server-side Whisper transcription (GPU-accelerated) when Web Speech is unavailable (e.g., iOS Safari).
 - **Offline-first sync** — all data (sites, items, photos, audio, notes) is stored locally in IndexedDB. A sync engine pushes/pulls to the server when connectivity returns (automatic on `online` event + app launch, or manual via the Sync button).
+- **Photo markup & annotation** — tap any photo to open it fullscreen with pinch-to-zoom, pan, and a full markup toolbar:
+  - **Arrow** — draw arrows pointing at things (e.g., "mount camera here")
+  - **Rectangle** — draw boxes around areas of interest
+  - **Freehand** — draw arbitrary lines
+  - **Text** — tap to place typed annotations with outline for readability
+  - **Select** — tap any existing annotation to select it, then drag to move, drag the blue handles to resize, change its color with the swatches, or delete it with the trash button
+  - 5 colors: red, yellow, green, white, black
+  - Undo, Clear, and Save (renders annotations onto the image and syncs the annotated version)
+- **Edit items anywhere** — every item card has an Edit button (on both the survey page and site detail page). Edit label/notes, add/remove photos, or delete the item.
+- **Instant photo previews** — photos show instant thumbnails while full-resolution processing happens in the background, so the UI never freezes.
 - **Three export formats per site:**
   - **PDF** — cover page (logo, site info, surveyor, date) + summary table + items grouped by category with photos and notes. Print-ready.
   - **HTML** — single self-contained file with embedded images and click-to-zoom lightbox.
   - **ZIP** — every image with its notes overlaid as a solid brand-color bar at the bottom, plus `manifest.csv`. Extract to your network share.
 - **PIN auth** — single-user with an argon2-hashed PIN gate + JWT sessions.
 - **Default categories** — Cameras, Access Control, Intercom, Air Quality, Alarms, Workplace, Other. Add custom ones in Settings.
+- **Auto-updating PWA** — the service worker checks for updates on every page load and activates new versions immediately (no stale caching, no need to clear cache or use incognito mode).
 - **Docker Compose** — single container with GPU passthrough for Whisper.
 
 ---
@@ -83,6 +94,37 @@ The app is available at `http://<server-ip>:<SITESNAP_PORT>` (default: 8000).
 5. Repeat for each item. All data is saved locally — works offline.
 6. When you're back online, tap **Sync now** (or it syncs automatically).
 7. From the site detail page, tap **Export** to download PDF / HTML / ZIP.
+
+---
+
+## Installing on Your Phone (PWA)
+
+SiteSnap is a Progressive Web App — you can install it on your phone's home screen and it will run like a native app (full screen, offline, with its own icon).
+
+**Requirements:** The app must be served over HTTPS. Use Caddy (see `Caddyfile.example`) or nginx with a valid certificate. The install prompt will not appear over plain HTTP.
+
+### Android (Chrome)
+1. Open the SiteSnap URL in Chrome.
+2. Tap the **menu** (⋮ icon, top-right).
+3. Tap **Install app** (or **Add to Home Screen**).
+4. Confirm — the app icon appears on your home screen.
+5. Launch it from the home screen — it runs full screen, no browser chrome.
+
+### iPhone (Safari)
+1. Open the SiteSnap URL in Safari.
+2. Tap the **Share** button (square with up arrow, bottom of screen).
+3. Scroll down and tap **Add to Home Screen**.
+4. Tap **Add** — the app icon appears on your home screen.
+5. Launch it from the home screen — it runs full screen, no Safari chrome.
+
+### iPhone (Chrome)
+1. Open the SiteSnap URL in Chrome.
+2. Tap the **menu** (⋮ icon, bottom-right).
+3. Tap **Add to Home Screen**.
+4. Confirm — the app icon appears on your home screen.
+
+### Auto-Updates
+The app automatically checks for updates every time you open it. If a new version is available, it downloads and activates immediately — you don't need to clear cache, use incognito mode, or manually refresh. Just close and reopen the app to get the latest version.
 
 ---
 
@@ -257,7 +299,7 @@ python -m backend.scripts.hash_pin
     │   ├── logo.svg            # Recolored logo for PWA
     │   └── manifest.webmanifest
     └── src/
-        ├── main.tsx            # Entry + routing + auth gate
+        ├── main.tsx            # Entry + routing + auth gate + SW registration
         ├── App.tsx             # App shell + sync bar
         ├── theme.css           # Mobile-first styles
         ├── db.ts               # Dexie (IndexedDB) schema
@@ -269,12 +311,15 @@ python -m backend.scripts.hash_pin
         ├── hooks/
         │   ├── useSpeechRecognition.ts
         │   └── useAudioRecorder.ts
+        ├── components/
+        │   ├── ImageViewer.tsx  # Fullscreen image viewer + markup tools
+        │   └── ThumbImg.tsx     # Thumbnail with blob/dataURL/server fallback
         └── pages/
             ├── LoginPage.tsx
             ├── SitesPage.tsx
             ├── SiteFormPage.tsx
-            ├── SiteDetailPage.tsx
-            ├── SurveyPage.tsx   # The fast capture workflow
+            ├── SiteDetailPage.tsx  # Site detail + inline item editing
+            ├── SurveyPage.tsx      # Fast capture workflow + item editing
             ├── ExportPage.tsx
             └── SettingsPage.tsx
 ```
