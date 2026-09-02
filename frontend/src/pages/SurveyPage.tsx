@@ -343,14 +343,157 @@ function ItemRowCard({ item }: { item: ItemRow }) {
     [item.client_uuid]
   );
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editLabel, setEditLabel] = useState(item.label);
+  const [editNotes, setEditNotes] = useState(item.notes);
+  const [addingPhotos, setAddingPhotos] = useState(false);
+  const editFileRef = useRef<HTMLInputElement>(null);
 
   const visibleImgs = (images ?? []).filter((i) => !i.deleted);
   const transcripts = (audio ?? []).filter((a) => !a.deleted && a.transcript_text).map((a) => a.transcript_text);
+
+  // Sync edit state when item changes.
+  useEffect(() => {
+    if (!editing) {
+      setEditLabel(item.label);
+      setEditNotes(item.notes);
+    }
+  }, [item.label, item.notes, editing]);
+
+  async function saveEdit() {
+    const now = new Date().toISOString();
+    await db.items.update(item.client_uuid, {
+      label: editLabel.trim(),
+      notes: editNotes.trim(),
+      updated_at: now,
+      sync_status: "pending",
+    });
+    setEditing(false);
+  }
+
+  function cancelEdit() {
+    setEditLabel(item.label);
+    setEditNotes(item.notes);
+    setEditing(false);
+  }
 
   async function deleteItem() {
     if (!confirm(`Delete "${item.label || "this item"}"?`)) return;
     const now = new Date().toISOString();
     await db.items.update(item.client_uuid, { deleted: true, updated_at: now, sync_status: "pending" });
+  }
+
+  async function deleteImage(imgUuid: string) {
+    const now = new Date().toISOString();
+    await db.images.update(imgUuid, { deleted: true, updated_at: now, sync_status: "pending" });
+    // Also mark the parent item as updated so it re-syncs.
+    await db.items.update(item.client_uuid, { updated_at: now, sync_status: "pending" });
+  }
+
+  async function onAddPhotos(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
+    if (editFileRef.current) editFileRef.current.value = "";
+    setAddingPhotos(true);
+    try {
+      const now = new Date().toISOString();
+      const existingCount = visibleImgs.length;
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const uuid = uuidv7();
+        // Quick thumbnail for instant display.
+        let quickThumb = "";
+        try { quickThumb = await quickThumbnail(file); } catch {}
+        const img: ImageRow = {
+          client_uuid: uuid,
+          item_client_uuid: item.client_uuid,
+          blob: file,
+          thumbnail_data_url: quickThumb,
+          filename: `${uuid}.jpg`,
+          mime: file.type || "image/jpeg",
+          width: 0,
+          height: 0,
+          taken_at: now,
+          sha256: "",
+          sort_order: existingCount + i,
+          created_at: now,
+          updated_at: now,
+          sync_status: "pending",
+          deleted: false,
+          binary_synced: false,
+        };
+        await db.images.add(img);
+        // Process in background.
+        processImage(file, file.type || "image/jpeg").then((processed) => {
+          db.images.update(uuid, {
+            blob: processed.blob,
+            thumbnail_data_url: processed.thumbnailDataUrl,
+            width: processed.width,
+            height: processed.height,
+          });
+        }).catch((err) => console.error("Photo processing failed:", err));
+      }
+      // Mark item as updated.
+      await db.items.update(item.client_uuid, { updated_at: now, sync_status: "pending" });
+    } finally {
+      setAddingPhotos(false);
+    }
+  }
+
+  if (editing) {
+    return (
+      <div className="item-card" onClick={(e) => e.stopPropagation()}>
+        <div className="row between" style={{ marginBottom: 8 }}>
+          <span className="badge badge-cat">{item.category}</span>
+          <button className="btn btn-ghost" style={{ padding: "2px 8px", fontSize: 13 }} onClick={cancelEdit}>Cancel</button>
+        </div>
+        <div className="field">
+          <label>Label / Location</label>
+          <input value={editLabel} onChange={(e) => setEditLabel(e.target.value)} placeholder="e.g. Front door, Camera 12" />
+        </div>
+        <div className="field">
+          <label>Notes</label>
+          <textarea value={editNotes} onChange={(e) => setEditNotes(e.target.value)} placeholder="Notes…" />
+        </div>
+        {/* Photos in edit mode — show with delete buttons */}
+        {visibleImgs.length > 0 && (
+          <div className="thumbs" style={{ marginBottom: 8 }}>
+            {visibleImgs.map((img) => (
+              <div key={img.client_uuid} style={{ position: "relative" }}>
+                <ThumbImg blob={img.blob} dataUrl={img.thumbnail_data_url} alt={item.label} />
+                <button
+                  className="btn btn-danger"
+                  style={{ position: "absolute", top: -4, right: -4, padding: "2px 6px", fontSize: 12, borderRadius: "50%", minWidth: 24 }}
+                  onClick={(e) => { e.stopPropagation(); deleteImage(img.client_uuid); }}
+                  title="Remove photo"
+                >×</button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="row" style={{ gap: 8, marginBottom: 8 }}>
+          <button
+            className="btn btn-ghost"
+            onClick={() => editFileRef.current?.click()}
+            disabled={addingPhotos}
+            style={{ flex: 1 }}
+          >
+            {addingPhotos ? "Adding…" : "📷 Add Photos"}
+          </button>
+          <input
+            ref={editFileRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            multiple
+            className="hidden-file"
+            onChange={onAddPhotos}
+          />
+          <button className="btn btn-primary" onClick={saveEdit} style={{ flex: 1 }}>✓ Save</button>
+        </div>
+        <button className="btn btn-danger btn-block" onClick={deleteItem}>Delete item</button>
+      </div>
+    );
   }
 
   return (
@@ -360,7 +503,15 @@ function ItemRowCard({ item }: { item: ItemRow }) {
           <span className="badge badge-cat">{item.category}</span>{" "}
           <strong>{item.label || "Untitled"}</strong>
         </div>
-        {item.sync_status === "pending" && <span className="badge badge-pending">pending</span>}
+        <div className="row" style={{ gap: 6 }}>
+          {item.sync_status === "pending" && <span className="badge badge-pending">pending</span>}
+          <button
+            className="btn btn-ghost"
+            style={{ padding: "2px 8px", fontSize: 13 }}
+            onClick={(e) => { e.stopPropagation(); setEditing(true); }}
+            title="Edit item"
+          >Edit</button>
+        </div>
       </div>
       {(item.notes || transcripts.length > 0) && (
         <div className="notes-preview">
@@ -382,10 +533,8 @@ function ItemRowCard({ item }: { item: ItemRow }) {
           ))}
         </div>
       )}
-      {open && (
-        <div className="row" style={{ marginTop: 8 }}>
-          <button className="btn btn-danger btn-block" onClick={(e) => { e.stopPropagation(); deleteItem(); }}>Delete item</button>
-        </div>
+      {open && visibleImgs.length > 4 && (
+        <div className="small muted" style={{ marginTop: 4 }}>{visibleImgs.length} photos total</div>
       )}
     </div>
   );
