@@ -18,7 +18,7 @@
   /* ---- Cover ---- */
   .cover {
     page-break-after: always;
-    padding: 60pt 48pt;
+    padding: 36pt 40pt;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -26,55 +26,67 @@
   }
   .cover .logo-wrap {
     background: var(--brand);
-    padding: 28pt 32pt;
-    border-radius: 6pt;
+    padding: 14pt 20pt;
+    border-radius: 4pt;
     color: #fff;
+    display: inline-block;
   }
-  .cover .logo-wrap svg { height: 56pt; width: auto; }
+  .cover .logo-wrap svg { height: 28pt; width: auto; vertical-align: middle; }
   .cover .logo-wrap .app-name {
-    font-size: 14pt;
-    letter-spacing: 2pt;
+    font-size: 10pt;
+    letter-spacing: 1.5pt;
     opacity: 0.85;
-    margin-top: 6pt;
+    margin-left: 8pt;
+    display: inline-block;
+    vertical-align: middle;
   }
   .cover .site-logo-wrap {
-    margin-top: 24pt;
+    margin-top: 20pt;
     margin-bottom: 8pt;
   }
   .cover .site-logo-img {
-    max-height: 100pt;
-    max-width: 200pt;
+    max-height: 72pt;
+    max-width: 160pt;
     object-fit: contain;
     border-radius: 4pt;
   }
   .cover h1 {
-    font-size: 30pt;
-    margin: 36pt 0 8pt;
+    font-size: 22pt;
+    margin: 24pt 0 6pt;
     color: var(--brand);
   }
-  .cover .subtitle { font-size: 14pt; color: #555; margin-bottom: 28pt; }
-  .cover .meta { font-size: 11pt; }
+  .cover .subtitle { font-size: 12pt; color: #555; margin-bottom: 20pt; }
+  .cover .meta { font-size: 10pt; }
   .cover .meta table { border-collapse: collapse; }
-  .cover .meta td { padding: 4pt 12pt 4pt 0; vertical-align: top; }
-  .cover .meta td.k { color: #777; font-weight: 600; width: 120pt; }
-  .cover .footer { font-size: 9pt; color: #888; }
+  .cover .meta td { padding: 3pt 12pt 3pt 0; vertical-align: top; }
+  .cover .meta td.k { color: #777; font-weight: 600; width: 100pt; }
+  .cover .footer { font-size: 8pt; color: #888; }
 
   /* ---- Summary table ---- */
-  .summary { padding: 24pt 36pt; }
+  .summary { padding: 20pt 36pt; }
   .summary h2 { color: var(--brand); border-bottom: 2pt solid var(--brand); padding-bottom: 4pt; }
-  table.summary-table { width: 100%; border-collapse: collapse; font-size: 9.5pt; }
+  table.summary-table { width: 100%; border-collapse: collapse; font-size: 9.5pt; table-layout: fixed; }
   table.summary-table th, table.summary-table td {
     border: 0.5pt solid #ccc;
     padding: 5pt 7pt;
     text-align: left;
     vertical-align: top;
+    overflow: hidden;
+    word-wrap: break-word;
   }
   table.summary-table th { background: #f3f4f6; }
-  table.summary-table td.num { text-align: center; width: 28pt; }
-  table.summary-table td.photos { text-align: center; width: 50pt; }
+  table.summary-table th.num, table.summary-table td.num { text-align: center; width: 32pt; }
+  table.summary-table th.cat, table.summary-table td.cat { width: 90pt; }
+  table.summary-table th.label, table.summary-table td.label { width: 110pt; }
+  table.summary-table th.notes, table.summary-table td.notes { width: auto; }
+  table.summary-table th.photos, table.summary-table td.photos {
+    text-align: center;
+    width: 42pt;
+    font-variant-numeric: tabular-nums;
+  }
 
   /* ---- Items ---- */
-  .category { padding: 18pt 36pt 0; page-break-inside: avoid; }
+  .category { padding: 14pt 36pt 0; page-break-inside: avoid; }
   .category h2 {
     color: var(--brand);
     border-bottom: 1pt solid #ddd;
@@ -82,7 +94,7 @@
     margin-bottom: 10pt;
     page-break-after: avoid;
   }
-  .item { margin-bottom: 16pt; page-break-inside: avoid; }
+  .item { margin-bottom: 14pt; page-break-inside: avoid; }
   .item h3 { font-size: 12pt; margin: 0 0 4pt; color: #222; }
   .item .label-tag {
     display: inline-block;
@@ -98,10 +110,14 @@
   .item .transcripts { margin: 4pt 0 6pt; color: #444; font-style: italic; }
   .item .transcripts .tlabel { font-style: normal; font-weight: 600; color: #777; }
   .photos { display: flex; flex-wrap: wrap; gap: 8pt; margin-top: 6pt; }
-  .photos figure { margin: 0; width: 220pt; page-break-inside: avoid; }
-  .photos img { width: 100%; height: auto; border: 0.5pt solid #ddd; border-radius: 3pt; }
+  .photos figure { margin: 0; width: 200pt; page-break-inside: avoid; }
+  .photos img {
+    width: 100%; height: auto;
+    border: 0.5pt solid #ddd; border-radius: 3pt;
+    display: block;
+  }
   .photos figcaption {
-    font-size: 8.5pt; color: #666; margin-top: 2pt; word-break: break-word;
+    font-size: 8pt; color: #888; margin-top: 2pt; word-break: break-word;
   }
 
   /* ---- HTML-only lightbox ---- */
@@ -110,10 +126,8 @@
     align-items: center; justify-content: center; z-index: 1000; cursor: zoom-out;
   }
   .lightbox img { max-width: 95vw; max-height: 95vh; }
-  .print-only { display: none; }
   @media print {
     .html-only { display: none !important; }
-    .print-only { display: block; }
     .photos figure { width: 45%; }
   }
 </style>
@@ -124,7 +138,7 @@
   <div>
     <div class="logo-wrap">
       {{ logo_svg|safe }}
-      <div class="app-name">SITESNAP</div>
+      <span class="app-name">SITESNAP</span>
     </div>
     {% if site_logo_data_url %}
     <div class="site-logo-wrap">
@@ -155,15 +169,21 @@
   <h2>Summary</h2>
   <table class="summary-table">
     <thead>
-      <tr><th class="num">#</th><th>Category</th><th>Label</th><th>Notes</th><th class="photos">Photos</th></tr>
+      <tr>
+        <th class="num">#</th>
+        <th class="cat">Category</th>
+        <th class="label">Label</th>
+        <th class="notes">Notes</th>
+        <th class="photos">Photos</th>
+      </tr>
     </thead>
     <tbody>
       {% for it in items %}
       <tr>
         <td class="num">{{ loop.index }}</td>
-        <td>{{ it.category }}</td>
-        <td>{{ it.label or "—" }}</td>
-        <td>{{ (it.notes[:80] + '…') if it.notes|length > 80 else it.notes }}</td>
+        <td class="cat">{{ it.category }}</td>
+        <td class="label">{{ it.label or "—" }}</td>
+        <td class="notes">{{ (it.notes[:80] + '…') if it.notes|length > 80 else it.notes }}</td>
         <td class="photos">{{ it.images|length }}</td>
       </tr>
       {% endfor %}
@@ -186,7 +206,8 @@
       {% for img in it.images %}
       <figure>
         {% if img.data_url %}
-          <img src="{{ img.data_url }}" alt="{{ it.label }}" data-full="{{ img.data_url }}" class="html-only">
+          <img src="{{ img.data_url }}" alt="{{ it.label }}">
+          <a href="{{ img.data_url }}" class="html-only" style="display:none" data-full="{{ img.data_url }}"></a>
         {% elif img.abs_path and img.abs_path.exists() %}
           <img src="file://{{ img.abs_path }}" alt="{{ it.label }}">
         {% endif %}
@@ -206,11 +227,16 @@
   (function() {
     var lb = document.getElementById('lightbox');
     var lbImg = document.getElementById('lightbox-img');
-    document.querySelectorAll('.photos img').forEach(function(img) {
-      img.addEventListener('click', function(e) {
-        lbImg.src = img.getAttribute('data-full') || img.src;
-        lb.style.display = 'flex';
-      });
+    document.querySelectorAll('.photos figure').forEach(function(fig) {
+      var link = fig.querySelector('a[data-full]');
+      var img = fig.querySelector('img');
+      if (link && img) {
+        img.style.cursor = 'zoom-in';
+        img.addEventListener('click', function(e) {
+          lbImg.src = link.getAttribute('data-full');
+          lb.style.display = 'flex';
+        });
+      }
     });
     lb.addEventListener('click', function() { lb.style.display = 'none'; });
     document.addEventListener('keydown', function(e) { if (e.key === 'Escape') lb.style.display = 'none'; });
