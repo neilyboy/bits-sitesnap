@@ -16,6 +16,8 @@ export default function SettingsPage() {
   const [newPin, setNewPin] = useState("");
   const [pinMsg, setPinMsg] = useState("");
   const [catMsg, setCatMsg] = useState("");
+  const [resyncMsg, setResyncMsg] = useState("");
+  const [resyncing, setResyncing] = useState(false);
 
   async function saveServerUrl(v: string) {
     await setSetting("server_url", v.trim());
@@ -55,6 +57,45 @@ export default function SettingsPage() {
     }
   }
 
+  async function fullResync() {
+    if (!confirm(
+      "Full Resync will DELETE all local data on this device and re-download everything from the server.\n\n" +
+      "Any items that exist only on this device (never synced to the server) will be permanently lost.\n\n" +
+      "Are you sure you want to continue?"
+    )) return;
+    setResyncing(true);
+    setResyncMsg("Clearing local data…");
+    try {
+      // Clear all local data (but keep auth token + server URL)
+      const token = await getSetting("auth_token", "");
+      const surl = await getSetting("server_url", "");
+      await db.sites.clear();
+      await db.items.clear();
+      await db.images.clear();
+      await db.audio.clear();
+      await db.categories.clear();
+      await db.sync_log.clear();
+      await setSetting("last_sync_at", "");
+      // Restore auth
+      await setSetting("auth_token", token);
+      await setSetting("server_url", surl);
+
+      setResyncMsg("Downloading from server…");
+      // Now do a full sync (pull everything from server since last_sync_at is empty)
+      const result = await syncNow();
+      if (result.ok) {
+        setResyncMsg("Full resync complete! All data downloaded from server.");
+        setTimeout(() => setResyncMsg(""), 4000);
+      } else {
+        setResyncMsg(`Resync failed: ${result.detail}`);
+      }
+    } catch (e: any) {
+      setResyncMsg(`Error: ${e?.message ?? String(e)}`);
+    } finally {
+      setResyncing(false);
+    }
+  }
+
   return (
     <div>
       <div className="row between" style={{ marginBottom: 12 }}>
@@ -75,6 +116,19 @@ export default function SettingsPage() {
         </div>
         <div className="small muted">Last sync: {lastSync || "never"}</div>
         <button className="btn btn-primary" style={{ marginTop: 8 }} onClick={() => syncNow()}>Sync now</button>
+        <button
+          className="btn btn-danger"
+          style={{ marginTop: 8, width: "100%" }}
+          onClick={fullResync}
+          disabled={resyncing}
+        >
+          {resyncing ? "Resyncing…" : "Full Resync (clear local & re-download)"}
+        </button>
+        {resyncMsg && (
+          <div className="small" style={{ marginTop: 8, color: resyncMsg.startsWith("Error") || resyncMsg.startsWith("Resync failed") ? "var(--danger)" : "var(--success)" }}>
+            {resyncMsg}
+          </div>
+        )}
       </div>
 
       <div className="card">
