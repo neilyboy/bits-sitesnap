@@ -6,11 +6,15 @@ import { useState } from "react";
 export default function SitesPage() {
   const navigate = useNavigate();
   const [q, setQ] = useState("");
-  const sites = useLiveQuery(() => db.sites.where("deleted").equals(0 as any).reverse().sortBy("survey_date"), []);
+  const sites = useLiveQuery(() => db.sites.toArray().then((all) =>
+    all.filter((s) => !s.deleted).sort((a, b) => (b.survey_date || "").localeCompare(a.survey_date || ""))
+  ), []);
   const itemCounts = useLiveQuery(async () => {
-    const items = await db.items.where("deleted").equals(0 as any).toArray();
+    const items = await db.items.toArray();
     const m = new Map<string, number>();
-    for (const it of items) m.set(it.site_client_uuid, (m.get(it.site_client_uuid) ?? 0) + 1);
+    for (const it of items) {
+      if (!it.deleted) m.set(it.site_client_uuid, (m.get(it.site_client_uuid) ?? 0) + 1);
+    }
     return m;
   }, []);
 

@@ -51,9 +51,10 @@ export async function pendingCount(): Promise<{
     db.images.where("sync_status").equals("pending").count(),
     db.audio.where("sync_status").equals("pending").count(),
   ]);
-  // Also count binaries not yet uploaded.
-  const unsyncedBinaries = await db.images.where("binary_synced").equals(0).count()
-    + await db.audio.where("binary_synced").equals(0).count();
+  // Also count binaries not yet uploaded (boolean field — can't use index).
+  const unsyncedImages = (await db.images.toArray()).filter((i) => !i.binary_synced).length;
+  const unsyncedAudio = (await db.audio.toArray()).filter((a) => !a.binary_synced).length;
+  const unsyncedBinaries = unsyncedImages + unsyncedAudio;
   return {
     sites,
     items,
@@ -160,8 +161,8 @@ async function push(): Promise<{ sites: number; items: number; images: number; a
 }
 
 async function uploadBinaries(): Promise<void> {
-  // Images whose metadata is synced but blob not yet uploaded.
-  const images = await db.images.where("binary_synced").equals(0 as any).toArray();
+  // Images whose metadata is synced but blob not yet uploaded (boolean — filter in memory).
+  const images = (await db.images.toArray()).filter((i) => !i.binary_synced);
   for (const img of images) {
     if (img.deleted) {
       await db.images.update(img.client_uuid, { binary_synced: true });
@@ -185,7 +186,7 @@ async function uploadBinaries(): Promise<void> {
     }
   }
 
-  const audio = await db.audio.where("binary_synced").equals(0 as any).toArray();
+  const audio = (await db.audio.toArray()).filter((a) => !a.binary_synced);
   for (const a of audio) {
     if (a.deleted) {
       await db.audio.update(a.client_uuid, { binary_synced: true });

@@ -119,6 +119,17 @@ class SiteSnapDB extends Dexie {
       sync_log: "++id, at",
       settings: "key",
     });
+    // v2: Remove boolean indexes (deleted, binary_synced) — IndexedDB
+    // cannot index boolean values. We filter in memory instead.
+    this.version(2).stores({
+      sites: "client_uuid, sync_status, server_updated_at, survey_date",
+      items: "client_uuid, site_client_uuid, sync_status, server_updated_at, sort_order",
+      images: "client_uuid, item_client_uuid, sync_status, sort_order",
+      audio: "client_uuid, item_client_uuid, sync_status",
+      categories: "slug, sort_order",
+      sync_log: "++id, at",
+      settings: "key",
+    });
   }
 }
 

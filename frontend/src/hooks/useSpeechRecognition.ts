@@ -64,16 +64,22 @@ export function useSpeechRecognition(): UseSpeechRecognition {
     rec.continuous = true;
     rec.interimResults = true;
     rec.onresult = (e) => {
+      // Rebuild final + interim from ALL results each time.
+      // Do NOT accumulate — Chrome fires onresult with resultIndex=0
+      // on every event with continuous:true, so accumulating would
+      // duplicate final segments on every fire.
+      let final = "";
       let interim = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) {
+      for (let i = 0; i < e.results.length; i++) {
         const r = e.results[i];
         if (r.isFinal) {
-          finalRef.current += r[0].transcript;
+          final += r[0].transcript;
         } else {
           interim += r[0].transcript;
         }
       }
-      setTranscript(finalRef.current);
+      finalRef.current = final;
+      setTranscript(final);
       setInterimTranscript(interim);
     };
     rec.onerror = (e: any) => {
