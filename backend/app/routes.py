@@ -342,6 +342,26 @@ async def upload_image(
     except Exception:
         pass
 
+    # Upsert: the sync push may have already created the metadata row.
+    # Update it with the file path + dimensions instead of inserting a duplicate.
+    existing = db.scalar(select(Image).where(Image.client_uuid == client_uuid))
+    if existing:
+        existing.item_id = item_id
+        existing.file_path = rel_path
+        existing.filename = filename or file.filename or "image.jpg"
+        existing.mime = file.content_type or "image/jpeg"
+        existing.width = width
+        existing.height = height
+        existing.taken_at = taken_at
+        existing.sha256 = sha
+        existing.sort_order = sort_order
+        existing.sync_status = "synced"
+        existing.deleted = False
+        existing.server_updated_at = datetime.now(timezone.utc)
+        db.commit()
+        db.refresh(existing)
+        return _image_to_out(existing)
+
     img = Image(
         client_uuid=client_uuid,
         item_id=item_id,
@@ -430,6 +450,25 @@ async def upload_audio(
     abs_path.write_bytes(data)
 
     status = "done" if transcript_text else "pending"
+
+    # Upsert: sync push may have already created the metadata row.
+    existing = db.scalar(select(AudioClip).where(AudioClip.client_uuid == client_uuid))
+    if existing:
+        existing.item_id = item_id
+        existing.file_path = rel_path
+        existing.duration_sec = duration_sec
+        if transcript_text:
+            existing.transcript_text = transcript_text
+            existing.transcript_status = "done"
+        existing.sync_status = "synced"
+        existing.deleted = False
+        existing.server_updated_at = datetime.now(timezone.utc)
+        db.commit()
+        db.refresh(existing)
+        if not transcript_text and existing.transcript_status != "done":
+            enqueue_transcription(existing.id)
+        return _audio_to_out(existing)
+
     clip = AudioClip(
         client_uuid=client_uuid,
         item_id=item_id,

@@ -18,13 +18,14 @@ export async function processImage(file: Blob, mime = "image/jpeg"): Promise<Pro
   const blob = await canvasToBlob(downscaled.canvas, mime, 0.85);
   const thumb = downscale(oriented, THUMB_DIM);
   const thumbnailDataUrl = thumb.canvas.toDataURL("image/jpeg", 0.7);
-  const sha = await sha256(blob);
+  // Skip client-side sha256 — it's slow on large images and the server
+  // computes its own hash on upload. We can compute it lazily if needed.
   return {
     blob,
     width: downscaled.width,
     height: downscaled.height,
     thumbnailDataUrl,
-    sha256: sha,
+    sha256: "",
   };
 }
 
