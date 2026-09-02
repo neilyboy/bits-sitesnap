@@ -114,16 +114,21 @@
   table.summary-table th.num, table.summary-table td.num {
     text-align: center;
     vertical-align: middle;
-    width: 30pt;
+    width: 28pt;
   }
   table.summary-table th.photos, table.summary-table td.photos {
     text-align: center;
     vertical-align: middle;
     width: 50pt;
   }
-  table.summary-table th.cat, table.summary-table td.cat { width: 85pt; }
-  table.summary-table th.label, table.summary-table td.label { width: 95pt; }
-  table.summary-table th.notes, table.summary-table td.notes { width: 188pt; }
+  table.summary-table th.cat, table.summary-table td.cat { width: 75pt; }
+  table.summary-table th.label, table.summary-table td.label { width: 85pt; }
+  table.summary-table th.notes, table.summary-table td.notes {
+    width: 200pt;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
   /* ---- Items ---- */
   .category { padding: 14pt 36pt 0; }
@@ -257,7 +262,7 @@
         <td class="num">{{ loop.index }}</td>
         <td class="cat">{{ it.category }}</td>
         <td class="label">{{ it.label or "—" }}</td>
-        <td class="notes">{{ (it.notes[:90] + '…') if it.notes|length > 90 else it.notes or "—" }}</td>
+        <td class="notes">{{ (it.notes[:36] + '…') if it.notes|length > 36 else it.notes or "—" }}</td>
         <td class="photos">{{ it.images|length }}</td>
       </tr>
       {% endfor %}
