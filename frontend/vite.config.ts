@@ -29,6 +29,11 @@ export default defineConfig({
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/api\//],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        // Force the new service worker to activate immediately without
+        // waiting for all tabs to close. This ensures users always get
+        // the latest version on their next visit.
+        skipWaiting: true,
+        clientsClaim: true,
       },
       devOptions: {
         enabled: false,

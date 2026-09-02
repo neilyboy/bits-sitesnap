@@ -14,6 +14,22 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db, getSetting } from "./db";
 import { useEffect, useState } from "react";
 import { syncNow } from "./lib/sync";
+import { registerSW } from "virtual:pwa-register";
+
+// Register service worker with auto-update: on every page load, check
+// for a new version. If found, the new SW activates immediately
+// (skipWaiting + clientsClaim) and we reload the page to use it.
+const updateSW = registerSW({
+  onNeedRefresh() {
+    // A new version is available — install it immediately and reload.
+    updateSW(true).then(() => {
+      window.location.reload();
+    });
+  },
+  onOfflineReady() {
+    // SW installed and ready for offline use — no action needed.
+  },
+});
 
 function AuthGate() {
   const token = useLiveQuery(() => getSetting("auth_token", ""), []);

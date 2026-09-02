@@ -13,10 +13,6 @@ type Color = "#ff0000" | "#ffff00" | "#00ff00" | "#ffffff" | "#000000";
 interface Annotation {
   tool: Tool;
   color: Color;
-  // For arrow: start + end
-  // For rect: start + end
-  // For freehand: points[]
-  // For text: position + text
   startX: number;
   startY: number;
   endX?: number;
@@ -28,12 +24,11 @@ interface Annotation {
 const COLORS: Color[] = ["#ff0000", "#ffff00", "#00ff00", "#ffffff", "#000000"];
 
 export default function ImageViewer({ blob, alt, onClose, onSave }: ImageViewerProps) {
-  const [imgUrl, setImgUrl] = useState("");
   const [imgEl, setImgEl] = useState<HTMLImageElement | null>(null);
   const [naturalW, setNaturalW] = useState(0);
   const [naturalH, setNaturalH] = useState(0);
 
-  // Zoom/pan state
+  // Zoom/pan state. panX/panY are the center offset in screen pixels.
   const [zoom, setZoom] = useState(1);
   const [panX, setPanX] = useState(0);
   const [panY, setPanY] = useState(0);
@@ -53,7 +48,7 @@ export default function ImageViewer({ blob, alt, onClose, onSave }: ImageViewerP
   const containerRef = useRef<HTMLDivElement>(null);
   const pinchDist = useRef(0);
 
-  // Load image
+  // Load image and fit to screen
   useEffect(() => {
     const url = URL.createObjectURL(blob);
     const img = new Image();
@@ -61,26 +56,35 @@ export default function ImageViewer({ blob, alt, onClose, onSave }: ImageViewerP
       setImgEl(img);
       setNaturalW(img.naturalWidth);
       setNaturalH(img.naturalHeight);
-      // Fit to screen
+      // Fit to screen and center
       const containerW = window.innerWidth;
       const containerH = window.innerHeight;
       const fitZoom = Math.min(containerW / img.naturalWidth, containerH / img.naturalHeight, 1);
       setZoom(fitZoom);
+      // Center: pan offset so the image center aligns with container center.
+      // With transformOrigin "50% 50%", panX=0/panY=0 means centered.
+      setPanX(0);
+      setPanY(0);
     };
     img.src = url;
-    setImgUrl(url);
     return () => URL.revokeObjectURL(url);
   }, [blob]);
 
-  // Convert screen coords to image coords
+  // Convert screen coords to image coords.
+  // The canvas is centered in the container via flexbox + transformOrigin 50%.
+  // Screen position → image position:
+  //   imgX = (screenX - containerCenterX - panX) / zoom + naturalW/2
+  //   imgY = (screenY - containerCenterY - panY) / zoom + naturalH/2
   const toImgCoords = useCallback((screenX: number, screenY: number) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
-    const rect = canvas.getBoundingClientRect();
-    const x = (screenX - rect.left - panX) / zoom;
-    const y = (screenY - rect.top - panY) / zoom;
+    const container = containerRef.current;
+    if (!container) return { x: 0, y: 0 };
+    const rect = container.getBoundingClientRect();
+    const cx = rect.width / 2;
+    const cy = rect.height / 2;
+    const x = (screenX - rect.left - cx - panX) / zoom + naturalW / 2;
+    const y = (screenY - rect.top - cy - panY) / zoom + naturalH / 2;
     return { x, y };
-  }, [zoom, panX, panY]);
+  }, [zoom, panX, panY, naturalW, naturalH]);
 
   // Render canvas
   const render = useCallback(() => {
@@ -122,7 +126,6 @@ export default function ImageViewer({ blob, alt, onClose, onSave }: ImageViewerP
       } else if (ann.tool === "text" && ann.text) {
         const fontSize = Math.max(20, naturalW / 40);
         ctx.font = `bold ${fontSize}px -apple-system, sans-serif`;
-        // Text outline for readability
         ctx.lineWidth = fontSize / 4;
         ctx.strokeStyle = ann.color === "#ffffff" || ann.color === "#ffff00" ? "#000000" : "#ffffff";
         ctx.strokeText(ann.text, ann.startX, ann.startY);
@@ -203,7 +206,6 @@ export default function ImageViewer({ blob, alt, onClose, onSave }: ImageViewerP
     if (editingTextIdx !== null && textValue.trim()) {
       setAnnotations((a) => a.map((ann, i) => i === editingTextIdx ? { ...ann, text: textValue.trim() } : ann));
     } else if (editingTextIdx !== null) {
-      // Empty text — remove the annotation
       setAnnotations((a) => a.filter((_, i) => i !== editingTextIdx));
     }
     setEditingTextIdx(null);
@@ -220,7 +222,6 @@ export default function ImageViewer({ blob, alt, onClose, onSave }: ImageViewerP
 
   async function saveAnnotated() {
     if (!canvasRef.current) return;
-    // If no annotations, just close
     if (annotations.length === 0) {
       onClose();
       return;
@@ -233,12 +234,21 @@ export default function ImageViewer({ blob, alt, onClose, onSave }: ImageViewerP
     }, "image/jpeg", 0.9);
   }
 
+  // The canvas is centered in the container via flexbox.
+  // The transform scales from the center (transformOrigin 50% 50%).
+  // panX/panY offset from the centered position.
   const canvasStyle: React.CSSProperties = {
     transform: `translate(${panX}px, ${panY}px) scale(${zoom})`,
-    transformOrigin: "0 0",
+    transformOrigin: "50% 50%",
     maxWidth: "none",
+    maxHeight: "none",
     touchAction: "none",
     cursor: tool === "none" ? (panning ? "grabbing" : "grab") : "crosshair",
+    // Constrain display size so the canvas doesn't overflow before transform.
+    // The actual canvas pixel size is naturalW x naturalH, but we display
+    // it at a size that fits the screen, then scale with transform.
+    width: naturalW || undefined,
+    height: naturalH || undefined,
   };
 
   return (
@@ -275,9 +285,12 @@ export default function ImageViewer({ blob, alt, onClose, onSave }: ImageViewerP
         )}
       </div>
 
-      {/* Canvas area */}
+      {/* Canvas area — flex centers the canvas, transform handles zoom/pan */}
       <div
-        style={{ flex: 1, overflow: "hidden", position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}
+        style={{
+          flex: 1, overflow: "hidden", position: "relative",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
