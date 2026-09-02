@@ -38,22 +38,39 @@ Edit `config/.env` and set:
   ```
   (Enter your PIN twice; copy the `SITESNAP_PIN_HASH=...` line into `config/.env`.)
 
+  > **Important:** Escape every `$` as `$$` in `config/.env` for docker compose.
+  > For example, `$argon2id$v=19$m=...` becomes `$$argon2id$$v=19$$m=...`.
+  > If you see "Incorrect PIN" on login, this is the most likely cause.
+
 - **`JWT_SECRET`** — a random 32+ char string:
   ```bash
   python -c "import secrets; print(secrets.token_urlsafe(48))"
   ```
 
 - **`WHISPER_MODEL`** — `small` (default), `tiny`, `base`, `medium`, or `large-v3`. Larger = more accurate, slower.
-- **`WHISPER_DEVICE`** — `cuda` (GPU, default) or `cpu`.
+- **`WHISPER_DEVICE`** — `cuda` (GPU) or `cpu` (default in base compose). On GPU machines, use the GPU override (see below).
 - **`BRAND_COLOR`** — hex color for the image overlay bar and PDF accents (default: `#0B1F3A`).
 
 ### 2. Build & Run
 
+**CPU-only (default — works on any machine):**
 ```bash
 docker compose up --build -d
 ```
 
-The app is available at `http://<server-ip>:8000`.
+**With NVIDIA GPU (faster Whisper transcription):**
+```bash
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build -d
+```
+This requires `nvidia-container-toolkit` installed on the host. The GPU override
+sets `WHISPER_DEVICE=cuda` and passes the GPU through to the container.
+
+**Custom port:** Set `SITESNAP_PORT` before `docker compose up`:
+```bash
+SITESNAP_PORT=8100 docker compose up -d
+```
+
+The app is available at `http://<server-ip>:<SITESNAP_PORT>` (default: 8000).
 
 > **HTTPS is required** for PWA install, camera access, service workers, and the Web Speech API. Put Caddy or nginx in front — see `Caddyfile.example` for a ready-to-use Caddy config with automatic Let's Encrypt.
 
@@ -202,7 +219,8 @@ python -m backend.scripts.hash_pin
 ```
 .
 ├── Dockerfile                  # Multi-stage: build React, then Python runtime
-├── docker-compose.yml          # Single service + GPU passthrough + volumes
+├── docker-compose.yml          # Base service (CPU-only, works everywhere)
+├── docker-compose.gpu.yml      # GPU override (NVIDIA passthrough for Whisper)
 ├── Caddyfile.example           # Optional HTTPS reverse proxy config
 ├── pyproject.toml              # Python backend deps
 ├── .env.example                # Config template

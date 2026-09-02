@@ -1,0 +1,15 @@
+# GPU override — use on machines with an NVIDIA GPU.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
+#
+# Requires nvidia-container-toolkit installed on the host.
+services:
+  sitesnap:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    environment:
+      - WHISPER_DEVICE=cuda
