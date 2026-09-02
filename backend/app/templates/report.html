@@ -68,25 +68,23 @@
   table.summary-table { width: 100%; border-collapse: collapse; font-size: 9.5pt; table-layout: fixed; }
   table.summary-table th, table.summary-table td {
     border: 0.5pt solid #ccc;
-    padding: 5pt 7pt;
+    padding: 5pt 8pt;
     text-align: left;
     vertical-align: top;
-    overflow: hidden;
     word-wrap: break-word;
   }
-  table.summary-table th { background: #f3f4f6; }
-  table.summary-table th.num, table.summary-table td.num { text-align: center; width: 32pt; }
-  table.summary-table th.cat, table.summary-table td.cat { width: 90pt; }
-  table.summary-table th.label, table.summary-table td.label { width: 110pt; }
+  table.summary-table th { background: #f3f4f6; font-weight: 600; }
+  table.summary-table th.num, table.summary-table td.num { text-align: center; width: 28pt; }
+  table.summary-table th.cat, table.summary-table td.cat { width: 85pt; }
+  table.summary-table th.label, table.summary-table td.label { width: 100pt; }
   table.summary-table th.notes, table.summary-table td.notes { width: auto; }
   table.summary-table th.photos, table.summary-table td.photos {
     text-align: center;
-    width: 42pt;
-    font-variant-numeric: tabular-nums;
+    width: 50pt;
   }
 
   /* ---- Items ---- */
-  .category { padding: 14pt 36pt 0; page-break-inside: avoid; }
+  .category { padding: 14pt 36pt 0; }
   .category h2 {
     color: var(--brand);
     border-bottom: 1pt solid #ddd;
@@ -94,8 +92,10 @@
     margin-bottom: 10pt;
     page-break-after: avoid;
   }
-  .item { margin-bottom: 14pt; page-break-inside: avoid; }
-  .item h3 { font-size: 12pt; margin: 0 0 4pt; color: #222; }
+  /* Item header (label + notes + transcripts) stays together on one page */
+  .item-head { page-break-inside: avoid; margin-bottom: 8pt; }
+  .item { margin-bottom: 18pt; }
+  .item h3 { font-size: 12pt; margin: 0 0 4pt; color: #222; page-break-after: avoid; }
   .item .label-tag {
     display: inline-block;
     background: #eef2f7;
@@ -109,6 +109,7 @@
   .item .notes { margin: 6pt 0; white-space: pre-wrap; }
   .item .transcripts { margin: 4pt 0 6pt; color: #444; font-style: italic; }
   .item .transcripts .tlabel { font-style: normal; font-weight: 600; color: #777; }
+  /* Photos flow naturally across pages; each figure stays intact */
   .photos { display: flex; flex-wrap: wrap; gap: 8pt; margin-top: 6pt; }
   .photos figure { margin: 0; width: 200pt; page-break-inside: avoid; }
   .photos img {
@@ -196,11 +197,13 @@
   <h2>{{ cat }}</h2>
   {% for it in items if it.category == cat %}
   <div class="item">
-    <h3><span class="label-tag">{{ loop.index }}</span>{{ it.label or "Untitled" }}</h3>
-    {% if it.notes %}<div class="notes">{{ it.notes }}</div>{% endif %}
-    {% for t in it.audio_transcripts %}
-      <div class="transcripts"><span class="tlabel">Voice note:</span> {{ t }}</div>
-    {% endfor %}
+    <div class="item-head">
+      <h3><span class="label-tag">{{ loop.index }}</span>{{ it.label or "Untitled" }}</h3>
+      {% if it.notes %}<div class="notes">{{ it.notes }}</div>{% endif %}
+      {% for t in it.audio_transcripts %}
+        <div class="transcripts"><span class="tlabel">Voice note:</span> {{ t }}</div>
+      {% endfor %}
+    </div>
     {% if it.images %}
     <div class="photos">
       {% for img in it.images %}
