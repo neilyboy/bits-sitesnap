@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getSetting } from "../db";
 
 interface ImageViewerProps {
-  blob: Blob;
+  blob?: Blob;
+  serverUrl?: string;
   alt: string;
   onClose: () => void;
   onSave?: (annotatedBlob: Blob) => void;
@@ -23,7 +25,8 @@ interface Annotation {
 
 const COLORS: Color[] = ["#ff0000", "#ffff00", "#00ff00", "#ffffff", "#000000"];
 
-export default function ImageViewer({ blob, alt, onClose, onSave }: ImageViewerProps) {
+export default function ImageViewer({ blob, serverUrl, alt, onClose, onSave }: ImageViewerProps) {
+  const [resolvedBlob, setResolvedBlob] = useState<Blob | undefined>(blob);
   const [imgEl, setImgEl] = useState<HTMLImageElement | null>(null);
   const [naturalW, setNaturalW] = useState(0);
   const [naturalH, setNaturalH] = useState(0);
@@ -50,25 +53,47 @@ export default function ImageViewer({ blob, alt, onClose, onSave }: ImageViewerP
 
   // Load image and fit to screen
   useEffect(() => {
-    const url = URL.createObjectURL(blob);
-    const img = new Image();
-    img.onload = () => {
-      setImgEl(img);
-      setNaturalW(img.naturalWidth);
-      setNaturalH(img.naturalHeight);
-      // Fit to screen and center
-      const containerW = window.innerWidth;
-      const containerH = window.innerHeight;
-      const fitZoom = Math.min(containerW / img.naturalWidth, containerH / img.naturalHeight, 1);
-      setZoom(fitZoom);
-      // Center: pan offset so the image center aligns with container center.
-      // With transformOrigin "50% 50%", panX=0/panY=0 means centered.
-      setPanX(0);
-      setPanY(0);
+    let url = "";
+    let cancelled = false;
+    (async () => {
+      let useBlob = resolvedBlob;
+      // If no blob, try fetching from server.
+      if (!useBlob && serverUrl) {
+        try {
+          const token = await getSetting("auth_token", "");
+          const base = await getSetting("server_url", "");
+          const fullUrl = serverUrl.startsWith("http") ? serverUrl : (base + serverUrl);
+          const resp = await fetch(fullUrl, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          });
+          if (resp.ok) {
+            useBlob = await resp.blob();
+            if (!cancelled) setResolvedBlob(useBlob);
+          }
+        } catch {}
+      }
+      if (!useBlob || cancelled) return;
+      url = URL.createObjectURL(useBlob);
+      const img = new Image();
+      img.onload = () => {
+        if (cancelled) return;
+        setImgEl(img);
+        setNaturalW(img.naturalWidth);
+        setNaturalH(img.naturalHeight);
+        const containerW = window.innerWidth;
+        const containerH = window.innerHeight;
+        const fitZoom = Math.min(containerW / img.naturalWidth, containerH / img.naturalHeight, 1);
+        setZoom(fitZoom);
+        setPanX(0);
+        setPanY(0);
+      };
+      img.src = url;
+    })();
+    return () => {
+      cancelled = true;
+      if (url) URL.revokeObjectURL(url);
     };
-    img.src = url;
-    return () => URL.revokeObjectURL(url);
-  }, [blob]);
+  }, [resolvedBlob, serverUrl]);
 
   // Convert screen coords to image coords.
   // The canvas is centered in the container via flexbox + transformOrigin 50%.

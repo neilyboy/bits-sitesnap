@@ -170,6 +170,11 @@ async function uploadBinaries(): Promise<void> {
     }
     const item = await db.items.get(img.item_client_uuid);
     if (!item || !item.id || item.deleted) continue;
+    if (!img.blob) {
+      // No blob to upload (e.g., image was pulled from server without binary).
+      await db.images.update(img.client_uuid, { binary_synced: true });
+      continue;
+    }
     try {
       await api.uploadImage(item.id, {
         file: img.blob,
@@ -259,14 +264,27 @@ async function pull(): Promise<{ server_time: string; sites: number; items: numb
     for (const img of resp.images) {
       const existing = await db.images.get(img.client_uuid);
       if (existing && existing.blob) {
+        // We have the blob locally — just update metadata, keep the blob.
         await db.images.update(img.client_uuid, {
           id: img.id,
           server_updated_at: img.server_updated_at,
           sync_status: "synced",
           deleted: img.deleted,
           binary_synced: true,
+          server_url: img.url,
+        });
+      } else if (existing && !existing.blob) {
+        // We have the row but no blob — update metadata + server_url.
+        await db.images.update(img.client_uuid, {
+          id: img.id,
+          server_updated_at: img.server_updated_at,
+          sync_status: "synced",
+          deleted: img.deleted,
+          binary_synced: true,
+          server_url: img.url,
         });
       } else if (!existing) {
+        // New image from server — no blob, but store the server_url for fetching.
         const itemUuid = itemIdToUuid.get(img.item_id) ?? "";
         await db.images.put({ ...imageFromDto(img), item_client_uuid: itemUuid });
       }
@@ -409,7 +427,8 @@ function imageFromDto(img: import("./types").ImageDTO): ImageRow {
     id: img.id,
     client_uuid: img.client_uuid,
     item_client_uuid: "", // resolved separately
-    blob: undefined as unknown as Blob,
+    blob: undefined,
+    server_url: img.url, // server path to fetch the image binary
     filename: img.filename,
     mime: img.mime,
     width: img.width,

@@ -28,7 +28,8 @@ export default function SiteDetailPage() {
   );
   const [expanded, setExpanded] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<string | null>(null);
-  const [viewerBlob, setViewerBlob] = useState<Blob | null>(null);
+  const [viewerBlob, setViewerBlob] = useState<Blob | undefined>(undefined);
+  const [viewerServerUrl, setViewerServerUrl] = useState<string | null>(null);
   const [viewerAlt, setViewerAlt] = useState("");
   const [viewerSaveUuid, setViewerSaveUuid] = useState<string | null>(null);
   const [toast, setToast] = useState("");
@@ -38,10 +39,11 @@ export default function SiteDetailPage() {
     setTimeout(() => setToast(""), 1800);
   }
 
-  function openViewer(blob: Blob, alt: string, imgUuid?: string) {
+  function openViewer(blob: Blob | undefined, alt: string, imgUuid?: string, serverUrl?: string) {
     setViewerBlob(blob);
     setViewerAlt(alt);
     setViewerSaveUuid(imgUuid ?? null);
+    setViewerServerUrl(serverUrl ?? null);
   }
 
   async function saveAnnotatedImage(annotatedBlob: Blob) {
@@ -157,11 +159,12 @@ export default function SiteDetailPage() {
 
       {toast && <div className="toast">{toast}</div>}
 
-      {viewerBlob && (
+      {(viewerBlob || viewerServerUrl) && (
         <ImageViewer
           blob={viewerBlob}
+          serverUrl={viewerServerUrl ?? undefined}
           alt={viewerAlt}
-          onClose={() => { setViewerBlob(null); setViewerSaveUuid(null); }}
+          onClose={() => { setViewerBlob(undefined); setViewerSaveUuid(null); setViewerServerUrl(null); }}
           onSave={saveAnnotatedImage}
         />
       )}
@@ -186,7 +189,7 @@ function ItemDisplay({
   onToggle: () => void;
   onEdit: () => void;
   onCancelEdit: () => void;
-  openViewer: (blob: Blob, alt: string, imgUuid?: string) => void;
+  openViewer: (blob: Blob | undefined, alt: string, imgUuid?: string, serverUrl?: string) => void;
 }) {
   const [editLabel, setEditLabel] = useState(item.label);
   const [editNotes, setEditNotes] = useState(item.notes);
@@ -292,7 +295,7 @@ function ItemDisplay({
           <div className="thumbs" style={{ marginBottom: 8 }}>
             {visibleImgs.map((img) => (
               <div key={img.client_uuid} style={{ position: "relative" }}>
-                <ThumbImg blob={img.blob} dataUrl={img.thumbnail_data_url} alt={item.label} onClick={() => openViewer(img.blob, item.label, img.client_uuid)} />
+                <ThumbImg blob={img.blob} dataUrl={img.thumbnail_data_url} serverUrl={img.server_url} alt={item.label} onClick={() => openViewer(img.blob, item.label, img.client_uuid, img.server_url)} />
                 <button
                   className="btn btn-danger"
                   style={{ position: "absolute", top: -4, right: -4, padding: "2px 6px", fontSize: 12, borderRadius: "50%", minWidth: 24 }}
@@ -350,8 +353,9 @@ function ItemDisplay({
               key={img.client_uuid}
               blob={img.blob}
               dataUrl={img.thumbnail_data_url}
+              serverUrl={img.server_url}
               alt={item.label}
-              onClick={() => openViewer(img.blob, item.label, img.client_uuid)}
+              onClick={() => openViewer(img.blob, item.label, img.client_uuid, img.server_url)}
             />
           ))}
         </div>

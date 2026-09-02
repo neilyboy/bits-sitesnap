@@ -41,10 +41,12 @@ export interface ImageRow {
   id?: number;
   client_uuid: string;
   item_client_uuid: string;
-  // Blob stored in IndexedDB (offline). Cleared after sync to save space? No — keep
-  // so the device can still display them offline. Server stores its own copy.
-  blob: Blob;
+  // Blob stored in IndexedDB (offline). May be missing for images pulled
+  // from the server (created on another device). In that case, use server_url
+  // to fetch the image on-demand.
+  blob?: Blob;
   thumbnail_data_url?: string; // small data URL for fast list rendering
+  server_url?: string; // server path to fetch the image if blob is missing
   filename: string;
   mime: string;
   width: number;
