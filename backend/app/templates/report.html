@@ -6,15 +6,20 @@
 <style>
   :root {
     --brand: {{ brand_color }};
+    --text: #1a1a1a;
+    --muted: #666;
+    --border: #d0d4dc;
+    --bg-alt: #f7f8fa;
   }
   * { box-sizing: border-box; }
   body {
     font-family: "DejaVu Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     margin: 0;
-    color: #1a1a1a;
-    font-size: 11pt;
-    line-height: 1.45;
+    color: var(--text);
+    font-size: 10.5pt;
+    line-height: 1.5;
   }
+
   /* ---- Cover ---- */
   .cover {
     page-break-after: always;
@@ -24,101 +29,184 @@
     flex-direction: column;
     justify-content: space-between;
   }
-  .cover .logo-wrap {
-    background: var(--brand);
-    padding: 14pt 20pt;
-    border-radius: 4pt;
-    color: #fff;
-    display: inline-block;
+  .cover-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 1.5pt solid var(--brand);
+    padding-bottom: 10pt;
   }
-  .cover .logo-wrap svg { height: 28pt; width: auto; vertical-align: middle; }
-  .cover .logo-wrap .app-name {
-    font-size: 10pt;
-    letter-spacing: 1.5pt;
-    opacity: 0.85;
-    margin-left: 8pt;
-    display: inline-block;
-    vertical-align: middle;
+  .cover-header .brand {
+    display: flex;
+    align-items: center;
+    gap: 8pt;
+    color: var(--brand);
+    font-weight: 700;
+    font-size: 12pt;
+    letter-spacing: 0.5pt;
   }
-  .cover .site-logo-wrap {
-    margin-top: 20pt;
+  .cover-header .brand svg { height: 22pt; width: auto; }
+  .cover-header .app-name {
+    font-size: 9pt;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1pt;
+    margin-top: 4pt;
+  }
+
+  .cover-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .cover-type {
+    font-size: 12pt;
+    color: var(--muted);
+    letter-spacing: 1pt;
+    text-transform: uppercase;
     margin-bottom: 8pt;
   }
-  .cover .site-logo-img {
-    max-height: 72pt;
-    max-width: 160pt;
-    object-fit: contain;
-    border-radius: 4pt;
-  }
   .cover h1 {
-    font-size: 22pt;
-    margin: 24pt 0 6pt;
+    font-size: 28pt;
+    margin: 0 0 12pt;
     color: var(--brand);
+    line-height: 1.2;
   }
-  .cover .subtitle { font-size: 12pt; color: #555; margin-bottom: 20pt; }
-  .cover .meta { font-size: 10pt; }
-  .cover .meta table { border-collapse: collapse; }
-  .cover .meta td { padding: 3pt 12pt 3pt 0; vertical-align: top; }
-  .cover .meta td.k { color: #777; font-weight: 600; width: 100pt; }
-  .cover .footer { font-size: 8pt; color: #888; }
+  .cover-subtitle {
+    font-size: 16pt;
+    color: #333;
+    margin-bottom: 24pt;
+  }
+  .cover-site-logo {
+    max-height: 90pt;
+    max-width: 220pt;
+    object-fit: contain;
+    margin-bottom: 20pt;
+  }
+  .cover .meta {
+    font-size: 10pt;
+    margin-top: 8pt;
+  }
+  .cover .meta table { border-collapse: collapse; width: 100%; max-width: 360pt; }
+  .cover .meta td { padding: 4pt 0; vertical-align: top; }
+  .cover .meta td.k { color: var(--muted); font-weight: 600; width: 110pt; }
+  .cover .footer {
+    font-size: 8pt;
+    color: #888;
+    border-top: 0.5pt solid var(--border);
+    padding-top: 10pt;
+  }
 
-  /* ---- Summary table ---- */
-  .summary { padding: 20pt 36pt; }
-  .summary h2 { color: var(--brand); border-bottom: 2pt solid var(--brand); padding-bottom: 4pt; }
-  table.summary-table { width: 100%; border-collapse: collapse; font-size: 9.5pt; table-layout: fixed; }
+  /* ---- Summary ---- */
+  .summary { padding: 18pt 36pt; }
+  .summary h2 {
+    color: var(--brand);
+    font-size: 14pt;
+    margin: 0 0 10pt;
+    padding-bottom: 4pt;
+    border-bottom: 1.5pt solid var(--brand);
+  }
+  table.summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9.5pt;
+    table-layout: fixed;
+  }
   table.summary-table th, table.summary-table td {
-    border: 0.5pt solid #ccc;
-    padding: 5pt 8pt;
+    border: 0.5pt solid var(--border);
+    padding: 5pt 6pt;
     text-align: left;
     vertical-align: top;
-    word-wrap: break-word;
   }
-  table.summary-table th { background: #f3f4f6; font-weight: 600; }
-  table.summary-table th.num, table.summary-table td.num { text-align: center; width: 28pt; }
-  table.summary-table th.cat, table.summary-table td.cat { width: 85pt; }
-  table.summary-table th.label, table.summary-table td.label { width: 100pt; }
-  table.summary-table th.notes, table.summary-table td.notes { width: auto; }
+  table.summary-table th {
+    background: var(--bg-alt);
+    color: #333;
+    font-weight: 700;
+    border-bottom: 1pt solid #b0b4bc;
+  }
+  table.summary-table tr:nth-child(even) { background: var(--bg-alt); }
+  table.summary-table th.num, table.summary-table td.num { text-align: center; width: 6%; }
+  table.summary-table th.cat, table.summary-table td.cat { width: 18%; }
+  table.summary-table th.label, table.summary-table td.label { width: 18%; }
+  table.summary-table th.notes, table.summary-table td.notes { width: 46%; }
   table.summary-table th.photos, table.summary-table td.photos {
     text-align: center;
-    width: 50pt;
+    width: 12%;
+    font-variant-numeric: tabular-nums;
   }
+  table.summary-table td.photos { color: #555; }
 
   /* ---- Items ---- */
   .category { padding: 14pt 36pt 0; }
   .category h2 {
     color: var(--brand);
-    border-bottom: 1pt solid #ddd;
+    font-size: 14pt;
+    border-bottom: 1pt solid var(--border);
     padding-bottom: 3pt;
-    margin-bottom: 10pt;
+    margin: 0 0 12pt;
     page-break-after: avoid;
   }
-  /* Item header (label + notes + transcripts) stays together on one page */
-  .item-head { page-break-inside: avoid; margin-bottom: 8pt; }
-  .item { margin-bottom: 18pt; }
-  .item h3 { font-size: 12pt; margin: 0 0 4pt; color: #222; page-break-after: avoid; }
+  .item {
+    margin-bottom: 16pt;
+    border: 0.5pt solid var(--border);
+    border-radius: 4pt;
+    padding: 10pt 12pt;
+    page-break-inside: auto;
+  }
+  .item-head {
+    page-break-inside: avoid;
+    margin-bottom: 8pt;
+  }
+  .item h3 { font-size: 11pt; margin: 0 0 5pt; color: #222; page-break-after: avoid; }
   .item .label-tag {
     display: inline-block;
     background: #eef2f7;
     color: var(--brand);
     border-radius: 3pt;
     padding: 1pt 6pt;
-    font-size: 8.5pt;
-    margin-right: 6pt;
-    font-weight: 600;
+    font-size: 8pt;
+    margin-right: 5pt;
+    font-weight: 700;
   }
-  .item .notes { margin: 6pt 0; white-space: pre-wrap; }
-  .item .transcripts { margin: 4pt 0 6pt; color: #444; font-style: italic; }
-  .item .transcripts .tlabel { font-style: normal; font-weight: 600; color: #777; }
-  /* Photos flow naturally across pages; each figure stays intact */
-  .photos { display: flex; flex-wrap: wrap; gap: 8pt; margin-top: 6pt; }
-  .photos figure { margin: 0; width: 200pt; page-break-inside: avoid; }
+  .item .notes {
+    margin: 5pt 0 0;
+    white-space: pre-wrap;
+    color: #333;
+    line-height: 1.45;
+  }
+  .item .transcripts {
+    margin: 5pt 0 0;
+    color: #444;
+    font-style: italic;
+    background: #f9fafb;
+    padding: 4pt 6pt;
+    border-left: 2pt solid var(--border);
+  }
+  .item .transcripts .tlabel { font-style: normal; font-weight: 700; color: #777; }
+
+  /* ---- Photos ---- */
+  .photos { display: flex; flex-wrap: wrap; gap: 8pt; margin-top: 10pt; }
+  .photos figure {
+    margin: 0;
+    width: 150pt;
+    page-break-inside: avoid;
+  }
   .photos img {
-    width: 100%; height: auto;
-    border: 0.5pt solid #ddd; border-radius: 3pt;
+    width: 100%;
+    height: auto;
+    max-height: 130pt;
+    object-fit: contain;
+    border: 0.5pt solid var(--border);
+    border-radius: 3pt;
     display: block;
+    background: #f7f8fa;
   }
   .photos figcaption {
-    font-size: 8pt; color: #888; margin-top: 2pt; word-break: break-word;
+    font-size: 7.5pt;
+    color: #888;
+    margin-top: 2pt;
+    word-break: break-word;
   }
 
   /* ---- HTML-only lightbox ---- */
@@ -129,7 +217,7 @@
   .lightbox img { max-width: 95vw; max-height: 95vh; }
   @media print {
     .html-only { display: none !important; }
-    .photos figure { width: 45%; }
+    .photos figure { width: 130pt; }
   }
 </style>
 </head>
@@ -137,30 +225,34 @@
 
 <section class="cover">
   <div>
-    <div class="logo-wrap">
-      {{ logo_svg|safe }}
-      <span class="app-name">SITESNAP</span>
+    <div class="cover-header">
+      <div class="brand">
+        {{ logo_svg|safe }}
+        <span>SiteSnap</span>
+      </div>
+      <div class="app-name">Site Survey Report</div>
     </div>
-    {% if site_logo_data_url %}
-    <div class="site-logo-wrap">
-      <img src="{{ site_logo_data_url }}" alt="Site logo" class="site-logo-img">
-    </div>
-    {% endif %}
-    <h1>Site Survey Report</h1>
-    <div class="subtitle">{{ site.business_name or "Untitled Site" }}</div>
-    <div class="meta">
-      <table>
-        {% if site.address_line1 %}<tr><td class="k">Address</td><td>
-          {{ site.address_line1 }}{% if site.address_line2 %}<br>{{ site.address_line2 }}{% endif %}
-          {% if site.city or site.state or site.zip %}<br>{{ site.city }}{{ ", " if site.city and site.state }}{{ site.state }} {{ site.zip }}{% endif %}
-        </td></tr>{% endif %}
-        {% if site.contact_name %}<tr><td class="k">Contact</td><td>{{ site.contact_name }}</td></tr>{% endif %}
-        {% if site.contact_phone %}<tr><td class="k">Phone</td><td>{{ site.contact_phone }}</td></tr>{% endif %}
-        {% if site.contact_email %}<tr><td class="k">Email</td><td>{{ site.contact_email }}</td></tr>{% endif %}
-        {% if site.surveyor_name %}<tr><td class="k">Surveyor</td><td>{{ site.surveyor_name }}</td></tr>{% endif %}
-        {% if site.survey_date %}<tr><td class="k">Survey Date</td><td>{{ site.survey_date }}</td></tr>{% endif %}
-        <tr><td class="k">Generated</td><td>{{ generated_at }}</td></tr>
-      </table>
+
+    <div class="cover-main">
+      {% if site_logo_data_url %}
+      <img src="{{ site_logo_data_url }}" alt="Site logo" class="cover-site-logo">
+      {% endif %}
+      <div class="cover-type">Site Survey Report</div>
+      <h1>{{ site.business_name or "Untitled Site" }}</h1>
+      <div class="cover-subtitle">
+        {{ site.address_line1 }}{% if site.address_line2 %}, {{ site.address_line2 }}{% endif %}
+        {% if site.city or site.state or site.zip %}<br>{{ site.city }}{{ ", " if site.city and site.state }}{{ site.state }} {{ site.zip }}{% endif %}
+      </div>
+      <div class="meta">
+        <table>
+          {% if site.contact_name %}<tr><td class="k">Contact</td><td>{{ site.contact_name }}</td></tr>{% endif %}
+          {% if site.contact_phone %}<tr><td class="k">Phone</td><td>{{ site.contact_phone }}</td></tr>{% endif %}
+          {% if site.contact_email %}<tr><td class="k">Email</td><td>{{ site.contact_email }}</td></tr>{% endif %}
+          {% if site.surveyor_name %}<tr><td class="k">Surveyor</td><td>{{ site.surveyor_name }}</td></tr>{% endif %}
+          {% if site.survey_date %}<tr><td class="k">Survey Date</td><td>{{ site.survey_date }}</td></tr>{% endif %}
+          <tr><td class="k">Generated</td><td>{{ generated_at }}</td></tr>
+        </table>
+      </div>
     </div>
   </div>
   <div class="footer">Generated by SiteSnap • {{ generated_at }}</div>
@@ -184,7 +276,7 @@
         <td class="num">{{ loop.index }}</td>
         <td class="cat">{{ it.category }}</td>
         <td class="label">{{ it.label or "—" }}</td>
-        <td class="notes">{{ (it.notes[:80] + '…') if it.notes|length > 80 else it.notes }}</td>
+        <td class="notes">{{ (it.notes[:90] + '…') if it.notes|length > 90 else it.notes or "—" }}</td>
         <td class="photos">{{ it.images|length }}</td>
       </tr>
       {% endfor %}
@@ -209,8 +301,10 @@
       {% for img in it.images %}
       <figure>
         {% if img.data_url %}
-          <img src="{{ img.data_url }}" alt="{{ it.label }}">
-          <a href="{{ img.data_url }}" class="html-only" style="display:none" data-full="{{ img.data_url }}"></a>
+          <a href="{{ img.data_url }}" class="html-only" data-full="{{ img.data_url }}">
+            <img src="{{ img.data_url }}" alt="{{ it.label }}">
+          </a>
+          <img src="{{ img.data_url }}" alt="{{ it.label }}" class="print-only">
         {% elif img.abs_path and img.abs_path.exists() %}
           <img src="file://{{ img.abs_path }}" alt="{{ it.label }}">
         {% endif %}
@@ -230,12 +324,12 @@
   (function() {
     var lb = document.getElementById('lightbox');
     var lbImg = document.getElementById('lightbox-img');
-    document.querySelectorAll('.photos figure').forEach(function(fig) {
-      var link = fig.querySelector('a[data-full]');
-      var img = fig.querySelector('img');
-      if (link && img) {
+    document.querySelectorAll('.photos a[data-full]').forEach(function(link) {
+      var img = link.querySelector('img');
+      if (img) {
         img.style.cursor = 'zoom-in';
-        img.addEventListener('click', function(e) {
+        link.addEventListener('click', function(e) {
+          e.preventDefault();
           lbImg.src = link.getAttribute('data-full');
           lb.style.display = 'flex';
         });
