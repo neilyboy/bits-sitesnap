@@ -32,6 +32,10 @@ def _migrate_add_columns() -> None:
     if "logo_path" not in site_cols:
         with engine.begin() as conn:
             conn.execute(text("ALTER TABLE sites ADD COLUMN logo_path VARCHAR(255) DEFAULT ''"))
+    if "share_token" not in site_cols:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE sites ADD COLUMN share_token VARCHAR(64) DEFAULT ''"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_sites_share_token ON sites (share_token)"))
 
 
 def _seed_categories() -> None:

@@ -1,15 +1,18 @@
 import { Link, useParams } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "../db";
+import { db, getSetting } from "../db";
 import { api } from "../lib/api";
 import { useState } from "react";
-import { IconChevronLeft, IconFileText, IconDownload, IconArchive } from "../components/Icons";
+import { IconChevronLeft, IconFileText, IconDownload, IconArchive, IconLink, IconCopy, IconTrash, IconCheck } from "../components/Icons";
 
 export default function ExportPage() {
   const { id } = useParams<{ id: string }>();
   const site = useLiveQuery(() => (id ? db.sites.get(id) : undefined), [id]);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [shareUrl, setShareUrl] = useState("");
+  const [shareBusy, setShareBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   async function download(kind: "pdf" | "html" | "zip") {
     if (!site?.id) {
@@ -43,6 +46,55 @@ export default function ExportPage() {
       setError(e?.message ?? "Export failed");
     } finally {
       setBusy(null);
+    }
+  }
+
+  async function createShareLink() {
+    if (!site?.id) return;
+    setShareBusy(true);
+    setError("");
+    try {
+      const { share_token } = await api.createShareLink(site.id);
+      let base = await getSetting("server_url", "");
+      base = base ? base.replace(/\/$/, "") : window.location.origin;
+      setShareUrl(`${base}/api/share/${share_token}`);
+      setCopied(false);
+    } catch (e: any) {
+      setError(e?.message ?? "Failed to create share link");
+    } finally {
+      setShareBusy(false);
+    }
+  }
+
+  async function revokeShareLink() {
+    if (!site?.id) return;
+    setShareBusy(true);
+    setError("");
+    try {
+      await api.revokeShareLink(site.id);
+      setShareUrl("");
+      setCopied(false);
+    } catch (e: any) {
+      setError(e?.message ?? "Failed to revoke share link");
+    } finally {
+      setShareBusy(false);
+    }
+  }
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback: select the text
+      const input = document.getElementById("share-url-input") as HTMLInputElement;
+      if (input) {
+        input.select();
+        document.execCommand("copy");
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
     }
   }
 
@@ -93,6 +145,56 @@ export default function ExportPage() {
         <div className="small" style={{ color: "var(--text-secondary)", marginTop: 10 }}>
           <strong style={{ color: "var(--text)" }}>ZIP</strong> — every image with its notes overlaid in a solid bar at the bottom, plus manifest.csv. Extract to your network share.
         </div>
+      </div>
+
+      <div className="card" style={{ marginTop: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+          <IconLink size={18} />
+          <strong style={{ fontSize: 15 }}>Public Share Link</strong>
+        </div>
+        <div className="small muted" style={{ marginBottom: 12 }}>
+          Generate a public URL that anyone can open to view this report in their browser — no login required. The link shows the current report at the time it was generated. Revoke it anytime to disable access.
+        </div>
+        {!shareUrl ? (
+          <button className="btn btn-primary" onClick={createShareLink} disabled={shareBusy || !site.id}>
+            {shareBusy ? <><span className="spinner" /> Creating…</> : <><IconLink size={16} /> Create Share Link</>}
+          </button>
+        ) : (
+          <div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <input
+                id="share-url-input"
+                type="text"
+                readOnly
+                value={shareUrl}
+                onClick={(e) => (e.target as HTMLInputElement).select()}
+                style={{
+                  flex: 1,
+                  minWidth: 200,
+                  padding: "8px 10px",
+                  borderRadius: "var(--radius-xs)",
+                  border: "1px solid var(--border)",
+                  background: "var(--surface-2)",
+                  color: "var(--text)",
+                  fontSize: 13,
+                  fontFamily: "monospace",
+                }}
+              />
+              <button className="btn" onClick={copyLink} title="Copy to clipboard">
+                {copied ? <><IconCheck size={16} /> Copied</> : <><IconCopy size={16} /> Copy</>}
+              </button>
+              <button className="btn" onClick={() => window.open(shareUrl, "_blank")} title="Open in new tab">
+                Open
+              </button>
+              <button className="btn btn-danger" onClick={revokeShareLink} disabled={shareBusy} title="Disable the share link">
+                {shareBusy ? <><span className="spinner" /> …</> : <><IconTrash size={16} /> Revoke</>}
+              </button>
+            </div>
+            <div className="small muted" style={{ marginTop: 8 }}>
+              Anyone with this link can view the report. No login needed.
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

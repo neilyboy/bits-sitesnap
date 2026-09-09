@@ -43,6 +43,7 @@ class Site(Base):
     survey_date: Mapped[str] = mapped_column(String(20), default="")  # ISO date
     general_notes: Mapped[str] = mapped_column(Text, default="")
     logo_path: Mapped[str] = mapped_column(String(255), default="")  # relative path under images dir
+    share_token: Mapped[str] = mapped_column(String(64), default="", index=True)  # public share token (empty = no sharing)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, onupdate=_utcnow)

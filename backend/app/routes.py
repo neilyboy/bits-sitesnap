@@ -634,3 +634,48 @@ def export_zip(site_id: int, _=Depends(require_auth), db: Session = Depends(get_
         media_type="application/zip",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+# ---------- Share Links ----------
+@router.post("/sites/{site_id}/share")
+def create_share_link(site_id: int, _=Depends(require_auth), db: Session = Depends(get_db)):
+    """Generate or rotate a public share token for a site."""
+    import secrets
+    s = db.get(Site, site_id)
+    if s is None or s.deleted:
+        raise HTTPException(status_code=404, detail="Site not found.")
+    s.share_token = secrets.token_urlsafe(24)
+    s.server_updated_at = datetime.now(timezone.utc)
+    db.commit()
+    return {"share_token": s.share_token}
+
+
+@router.delete("/sites/{site_id}/share")
+def revoke_share_link(site_id: int, _=Depends(require_auth), db: Session = Depends(get_db)):
+    """Revoke (delete) the public share token for a site."""
+    s = db.get(Site, site_id)
+    if s is None:
+        raise HTTPException(status_code=404, detail="Site not found.")
+    s.share_token = ""
+    s.server_updated_at = datetime.now(timezone.utc)
+    db.commit()
+    return {"ok": True}
+
+
+@router.get("/share/{token}")
+def view_shared_report(token: str, db: Session = Depends(get_db)):
+    """Public endpoint — serves the HTML report for anyone with the token.
+    No authentication required."""
+    s = db.scalar(select(Site).where(Site.share_token == token))
+    if s is None or s.deleted or not token:
+        raise HTTPException(status_code=404, detail="Shared report not found or link has been revoked.")
+    from .exports.html import generate_html
+    try:
+        html_bytes, _ = generate_html(db, s.id)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return Response(
+        content=html_bytes,
+        media_type="text/html",
+        headers={"Content-Disposition": f'inline; filename="report.html"'},
+    )

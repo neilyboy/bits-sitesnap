@@ -168,4 +168,12 @@ export const api = {
   async exportZip(siteId: number): Promise<Blob> {
     return request<Blob>(`/api/sites/${siteId}/export/zip`, { method: "POST" }, true);
   },
+
+  async createShareLink(siteId: number): Promise<{ share_token: string }> {
+    return request(`/api/sites/${siteId}/share`, { method: "POST" });
+  },
+
+  async revokeShareLink(siteId: number): Promise<{ ok: boolean }> {
+    return request(`/api/sites/${siteId}/share`, { method: "DELETE" });
+  },
 };
