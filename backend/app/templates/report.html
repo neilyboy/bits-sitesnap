@@ -275,14 +275,10 @@
       {% for img in it.images %}
       <figure>
         {% if img.data_url %}
-          <a href="{{ img.data_url }}" class="html-only" data-full="{{ img.data_url }}">
-            <img src="{{ img.data_url }}" alt="{{ it.label }}">
-          </a>
-          <img src="{{ img.data_url }}" alt="{{ it.label }}" class="print-only">
+          <img src="{{ img.data_url }}" alt="{{ it.label }}" data-full="{{ img.data_url }}">
         {% elif img.abs_path and img.abs_path.exists() %}
           <img src="file://{{ img.abs_path }}" alt="{{ it.label }}">
         {% endif %}
-        <figcaption>{{ img.filename }}</figcaption>
       </figure>
       {% endfor %}
     </div>
@@ -298,16 +294,12 @@
   (function() {
     var lb = document.getElementById('lightbox');
     var lbImg = document.getElementById('lightbox-img');
-    document.querySelectorAll('.photos a[data-full]').forEach(function(link) {
-      var img = link.querySelector('img');
-      if (img) {
-        img.style.cursor = 'zoom-in';
-        link.addEventListener('click', function(e) {
-          e.preventDefault();
-          lbImg.src = link.getAttribute('data-full');
-          lb.style.display = 'flex';
-        });
-      }
+    document.querySelectorAll('.photos img[data-full]').forEach(function(img) {
+      img.style.cursor = 'zoom-in';
+      img.addEventListener('click', function(e) {
+        lbImg.src = img.getAttribute('data-full');
+        lb.style.display = 'flex';
+      });
     });
     lb.addEventListener('click', function() { lb.style.display = 'none'; });
     document.addEventListener('keydown', function(e) { if (e.key === 'Escape') lb.style.display = 'none'; });
