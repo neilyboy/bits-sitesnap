@@ -309,8 +309,14 @@ export default function SurveyPage() {
 
       {/* Label + notes */}
       <div className="field">
-        <label>Label / Location (optional)</label>
-        <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder={`e.g. Front door, Camera 12`} />
+        <label>Item ID / Tag</label>
+        <input
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          placeholder={`e.g. Cam 45, CC01, Camera 29`}
+          autoFocus
+          style={{ fontSize: 16, fontWeight: 600 }}
+        />
       </div>
       <div className="field">
         <label>Notes {speech.listening && <span className="muted tiny">(listening…)</span>}</label>
@@ -505,8 +511,8 @@ function ItemRowCard({ item, openViewer }: { item: ItemRow; openViewer: (blob: B
           <button className="btn btn-ghost" style={{ padding: "4px 10px", fontSize: 13 }} onClick={cancelEdit}><IconX size={16} /> Cancel</button>
         </div>
         <div className="field">
-          <label>Label / Location</label>
-          <input value={editLabel} onChange={(e) => setEditLabel(e.target.value)} placeholder="e.g. Front door, Camera 12" />
+          <label>Item ID / Tag</label>
+          <input value={editLabel} onChange={(e) => setEditLabel(e.target.value)} placeholder="e.g. Cam 45, CC01, Camera 29" style={{ fontSize: 16, fontWeight: 600 }} />
         </div>
         <div className="field">
           <label>Notes</label>

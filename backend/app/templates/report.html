@@ -102,9 +102,12 @@
   table.summary-table td { background: #fff; }
   table.summary-table tr.even td { background: var(--bg-alt); }
   table.summary-table th.num, table.summary-table td.num {
-    text-align: center;
+    text-align: left;
     vertical-align: middle;
-    width: 28pt;
+    width: 100pt;
+    font-weight: 700;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
   table.summary-table th.photos, table.summary-table td.photos {
     text-align: center;
@@ -114,7 +117,7 @@
   table.summary-table th.cat, table.summary-table td.cat { width: 75pt; }
   table.summary-table th.label, table.summary-table td.label { width: 85pt; }
   table.summary-table th.notes, table.summary-table td.notes {
-    width: 200pt;
+    width: 245pt;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -237,9 +240,8 @@
   <table class="summary-table">
     <thead>
       <tr>
-        <th class="num">#</th>
+        <th class="num">ID</th>
         <th class="cat">Category</th>
-        <th class="label">Label</th>
         <th class="notes">Notes</th>
         <th class="photos">Photos</th>
       </tr>
@@ -247,9 +249,8 @@
     <tbody>
       {% for it in items %}
       <tr class="{% if loop.index0 % 2 == 1 %}even{% endif %}">
-        <td class="num">{{ loop.index }}</td>
+        <td class="num">{{ it.label or loop.index }}</td>
         <td class="cat">{{ it.category }}</td>
-        <td class="label">{{ it.label or "—" }}</td>
         <td class="notes">{{ (it.notes[:36] + '…') if it.notes|length > 36 else it.notes or "—" }}</td>
         <td class="photos">{{ it.images|length }}</td>
       </tr>
@@ -264,7 +265,7 @@
   {% for it in items if it.category == cat %}
   <div class="item">
     <div class="item-head">
-      <h3><span class="label-tag">{{ loop.index }}</span>{{ it.label or "Untitled" }}</h3>
+      <h3>{% if it.label %}<span class="label-tag">{{ it.label }}</span>{% else %}<span class="label-tag">{{ loop.index }}</span>Untitled{% endif %}</h3>
       {% if it.notes %}<div class="notes">{{ it.notes }}</div>{% endif %}
       {% for t in it.audio_transcripts %}
         <div class="transcripts"><span class="tlabel">Voice note:</span> {{ t }}</div>
