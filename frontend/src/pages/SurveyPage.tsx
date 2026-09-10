@@ -10,8 +10,9 @@ import ThumbImg from "../components/ThumbImg";
 import ImageViewer from "../components/ImageViewer";
 import { saveToCameraRoll } from "../lib/share";
 import { IconChevronLeft, IconCamera, IconMic, IconCheck, IconX, IconEdit, IconTrash, IconPlus } from "../components/Icons";
+import { CategoryIcon } from "../components/CategoryIcons";
 
-const DEFAULT_CATEGORIES = ["Cameras", "Access Control", "Intercom", "Air Quality", "Alarms", "Workplace", "Other"];
+const DEFAULT_CATEGORIES = ["Cameras", "Access Control", "Intercom", "Air Quality", "Alarms", "Workplace", "Data Closet", "Other"];
 
 export default function SurveyPage() {
   const { id } = useParams<{ id: string }>();
@@ -284,6 +285,7 @@ export default function SurveyPage() {
             className={`chip ${activeCategory === c ? "active" : ""}`}
             onClick={() => setActiveCategory(c)}
           >
+            <CategoryIcon name={c} size={16} style={{ marginRight: 6, flexShrink: 0 }} />
             {c}
           </button>
         ))}
@@ -563,7 +565,7 @@ function ItemRowCard({ item, openViewer }: { item: ItemRow; openViewer: (blob: B
     <div className="item-card" onClick={() => setOpen(!open)}>
       <div className="row between">
         <div>
-          <span className="badge badge-cat">{item.category}</span>{" "}
+          <span className="badge badge-cat"><CategoryIcon name={item.category} size={13} style={{ marginRight: 4, verticalAlign: "-1px" }} />{item.category}</span>{" "}
           <strong>{item.label || "Untitled"}</strong>
         </div>
         <div className="row" style={{ gap: 6 }}>

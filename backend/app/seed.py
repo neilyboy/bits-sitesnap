@@ -14,6 +14,7 @@ DEFAULT_CATEGORIES = [
     "Air Quality",
     "Alarms",
     "Workplace",
+    "Data Closet",
     "Other",
 ]
 

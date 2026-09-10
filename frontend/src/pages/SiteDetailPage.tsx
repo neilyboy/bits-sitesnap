@@ -8,8 +8,9 @@ import ThumbImg from "../components/ThumbImg";
 import ImageViewer from "../components/ImageViewer";
 import { IconChevronLeft, IconPlus, IconEdit, IconDownload, IconTrash, IconCamera, IconCheck, IconX, IconMapPin, IconUser, IconCalendar, IconChevronDown } from "../components/Icons";
 import SiteLogo from "../components/SiteLogo";
+import { CategoryIcon } from "../components/CategoryIcons";
 
-const DEFAULT_ORDER = ["Cameras", "Access Control", "Intercom", "Air Quality", "Alarms", "Workplace", "Other"];
+const DEFAULT_ORDER = ["Cameras", "Access Control", "Intercom", "Air Quality", "Alarms", "Workplace", "Data Closet", "Other"];
 
 function catKey(c: string): [number, string] {
   const i = DEFAULT_ORDER.indexOf(c);
@@ -186,6 +187,7 @@ export default function SiteDetailPage() {
         cats.map((cat) => (
           <div key={cat}>
             <div className="section-header">
+              <CategoryIcon name={cat} size={18} style={{ marginRight: 6, verticalAlign: "-3px" }} />
               {cat} <span style={{ opacity: 0.5 }}>({byCat.get(cat)!.length})</span>
             </div>
             {byCat.get(cat)!.map((it) => {
@@ -333,7 +335,7 @@ function ItemDisplay({
     return (
       <div className="item-card" onClick={(e) => e.stopPropagation()}>
         <div className="row between" style={{ marginBottom: 10 }}>
-          <span className="badge badge-cat">{item.category}</span>
+          <span className="badge badge-cat"><CategoryIcon name={item.category} size={13} style={{ marginRight: 4, verticalAlign: "-1px" }} />{item.category}</span>
           <button className="btn btn-ghost" style={{ padding: "4px 10px", fontSize: 13 }} onClick={onCancelEdit}>
             <IconX size={16} />
             Cancel
