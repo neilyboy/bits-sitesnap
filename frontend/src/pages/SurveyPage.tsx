@@ -361,7 +361,7 @@ export default function SurveyPage() {
       {/* Existing items list */}
       <h3 style={{ fontSize: 15, color: "var(--brand)", margin: "16px 0 6px" }}>Items ({visibleItems.length})</h3>
       {visibleItems.map((it) => (
-        <ItemRowCard key={it.client_uuid} item={it} openViewer={openViewer} />
+        <ItemRowCard key={it.client_uuid} item={it} openViewer={openViewer} catNames={catNames} />
       ))}
 
       {/* Floating capture button */}
@@ -398,7 +398,7 @@ export default function SurveyPage() {
   );
 }
 
-function ItemRowCard({ item, openViewer }: { item: ItemRow; openViewer: (blob: Blob | undefined, alt: string, imgUuid?: string, serverUrl?: string) => void }) {
+function ItemRowCard({ item, openViewer, catNames }: { item: ItemRow; openViewer: (blob: Blob | undefined, alt: string, imgUuid?: string, serverUrl?: string) => void; catNames: string[] }) {
   const images = useLiveQuery(
     () => db.images.where("item_client_uuid").equals(item.client_uuid).reverse().sortBy("sort_order"),
     [item.client_uuid]
@@ -411,6 +411,7 @@ function ItemRowCard({ item, openViewer }: { item: ItemRow; openViewer: (blob: B
   const [editing, setEditing] = useState(false);
   const [editLabel, setEditLabel] = useState(item.label);
   const [editNotes, setEditNotes] = useState(item.notes);
+  const [editCategory, setEditCategory] = useState(item.category);
   const [addingPhotos, setAddingPhotos] = useState(false);
   const editFileRef = useRef<HTMLInputElement>(null);
 
@@ -422,14 +423,16 @@ function ItemRowCard({ item, openViewer }: { item: ItemRow; openViewer: (blob: B
     if (!editing) {
       setEditLabel(item.label);
       setEditNotes(item.notes);
+      setEditCategory(item.category);
     }
-  }, [item.label, item.notes, editing]);
+  }, [item.label, item.notes, item.category, editing]);
 
   async function saveEdit() {
     const now = new Date().toISOString();
     await db.items.update(item.client_uuid, {
       label: editLabel.trim(),
       notes: editNotes.trim(),
+      category: editCategory,
       updated_at: now,
       sync_status: "pending",
     });
@@ -439,6 +442,7 @@ function ItemRowCard({ item, openViewer }: { item: ItemRow; openViewer: (blob: B
   function cancelEdit() {
     setEditLabel(item.label);
     setEditNotes(item.notes);
+    setEditCategory(item.category);
     setEditing(false);
   }
 
@@ -511,6 +515,14 @@ function ItemRowCard({ item, openViewer }: { item: ItemRow; openViewer: (blob: B
         <div className="row between" style={{ marginBottom: 8 }}>
           <span className="badge badge-cat">{item.category}</span>
           <button className="btn btn-ghost" style={{ padding: "4px 10px", fontSize: 13 }} onClick={cancelEdit}><IconX size={16} /> Cancel</button>
+        </div>
+        <div className="field">
+          <label>Category</label>
+          <select value={editCategory} onChange={(e) => setEditCategory(e.target.value)} style={{ fontSize: 15 }}>
+            {catNames.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
         </div>
         <div className="field">
           <label>Item ID / Tag</label>

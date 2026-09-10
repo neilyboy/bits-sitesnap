@@ -29,6 +29,9 @@ export default function SiteDetailPage() {
     () => db.images.where("item_client_uuid").anyOf((items ?? []).map((i) => i.client_uuid)).toArray(),
     [items]
   );
+  const categories = useLiveQuery(() => db.categories.orderBy("sort_order").toArray(), []);
+  const catNames = (categories ?? []).map((c) => c.name);
+  const allCatNames = catNames.length ? catNames : DEFAULT_ORDER;
   const [expanded, setExpanded] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [viewerBlob, setViewerBlob] = useState<Blob | undefined>(undefined);
@@ -201,6 +204,7 @@ export default function SiteDetailPage() {
                   imgs={imgs}
                   isOpen={isOpen}
                   isEditing={isEditing}
+                  catNames={allCatNames}
                   onToggle={() => setExpanded(isOpen ? null : it.client_uuid)}
                   onEdit={() => { setEditingItem(it.client_uuid); setExpanded(it.client_uuid); }}
                   onCancelEdit={() => setEditingItem(null)}
@@ -232,6 +236,7 @@ function ItemDisplay({
   imgs,
   isOpen,
   isEditing,
+  catNames,
   onToggle,
   onEdit,
   onCancelEdit,
@@ -241,6 +246,7 @@ function ItemDisplay({
   imgs: ImageRow[];
   isOpen: boolean;
   isEditing: boolean;
+  catNames: string[];
   onToggle: () => void;
   onEdit: () => void;
   onCancelEdit: () => void;
@@ -248,6 +254,7 @@ function ItemDisplay({
 }) {
   const [editLabel, setEditLabel] = useState(item.label);
   const [editNotes, setEditNotes] = useState(item.notes);
+  const [editCategory, setEditCategory] = useState(item.category);
   const [addingPhotos, setAddingPhotos] = useState(false);
   const editFileRef = useRef<HTMLInputElement>(null);
 
@@ -255,8 +262,9 @@ function ItemDisplay({
     if (!isEditing) {
       setEditLabel(item.label);
       setEditNotes(item.notes);
+      setEditCategory(item.category);
     }
-  }, [item.label, item.notes, isEditing]);
+  }, [item.label, item.notes, item.category, isEditing]);
 
   const visibleImgs = imgs.filter((i) => !i.deleted);
 
@@ -265,6 +273,7 @@ function ItemDisplay({
     await db.items.update(item.client_uuid, {
       label: editLabel.trim(),
       notes: editNotes.trim(),
+      category: editCategory,
       updated_at: now,
       sync_status: "pending",
     });
@@ -342,8 +351,16 @@ function ItemDisplay({
           </button>
         </div>
         <div className="field">
-          <label>Label / Location</label>
-          <input value={editLabel} onChange={(e) => setEditLabel(e.target.value)} placeholder="e.g. Front door, Camera 12" />
+          <label>Category</label>
+          <select value={editCategory} onChange={(e) => setEditCategory(e.target.value)} style={{ fontSize: 15 }}>
+            {catNames.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        </div>
+        <div className="field">
+          <label>Item ID / Tag</label>
+          <input value={editLabel} onChange={(e) => setEditLabel(e.target.value)} placeholder="e.g. Cam 45, CC01, Camera 29" style={{ fontSize: 16, fontWeight: 600 }} />
         </div>
         <div className="field">
           <label>Notes</label>
