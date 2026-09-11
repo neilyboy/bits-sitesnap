@@ -4,8 +4,8 @@ import { db, getSetting, setSetting } from "../db";
 import { api } from "../lib/api";
 import { syncNow, setAutoSyncEnabled } from "../lib/sync";
 import { canSaveToCameraRoll } from "../lib/share";
-import { useState } from "react";
-import { IconChevronLeft, IconSync, IconRefreshCw, IconLogOut, IconCloud, IconCamera } from "../components/Icons";
+import { useState, useRef } from "react";
+import { IconChevronLeft, IconSync, IconRefreshCw, IconLogOut, IconCloud, IconCamera, IconDownload, IconArchive } from "../components/Icons";
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -22,6 +22,10 @@ export default function SettingsPage() {
   const [catMsg, setCatMsg] = useState("");
   const [resyncMsg, setResyncMsg] = useState("");
   const [resyncing, setResyncing] = useState(false);
+  const [backupBusy, setBackupBusy] = useState(false);
+  const [importBusy, setImportBusy] = useState(false);
+  const [backupMsg, setBackupMsg] = useState("");
+  const importFileRef = useRef<HTMLInputElement>(null);
 
   async function saveServerUrl(v: string) {
     await setSetting("server_url", v.trim());
@@ -100,6 +104,60 @@ export default function SettingsPage() {
     }
   }
 
+  async function downloadFullBackup() {
+    setBackupBusy(true);
+    setBackupMsg("");
+    try {
+      const blob = await api.backupFull();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "_");
+      a.download = `sitesnap_backup_${ts}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setBackupMsg("Full backup downloaded.");
+    } catch (e: any) {
+      setBackupMsg(e?.message ?? "Backup failed");
+    } finally {
+      setBackupBusy(false);
+    }
+  }
+
+  async function onImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (importFileRef.current) importFileRef.current.value = "";
+
+    const overwrite = confirm(
+      "Import a backup file?\n\n" +
+      "Click OK to OVERWRITE existing sites with the same ID (useful for restoring).\n" +
+      "Click Cancel to SKIP sites that already exist (useful for merging).\n\n" +
+      "After import, a full resync will be triggered to update this device."
+    );
+
+    setImportBusy(true);
+    setBackupMsg("");
+    try {
+      const buf = await file.arrayBuffer();
+      const result = await api.importBackup(buf, overwrite);
+      setBackupMsg(
+        `Imported: ${result.sites_imported} site(s), ${result.items_imported} item(s), ` +
+        `${result.images_imported} image(s), ${result.audio_imported} audio clip(s)` +
+        (result.sites_skipped ? `, ${result.sites_skipped} skipped` : "") +
+        `, ${result.categories_added} new category(ies)`
+      );
+      // Trigger a full resync to pull the imported data to this device
+      await syncNow();
+    } catch (e: any) {
+      setBackupMsg(e?.message ?? "Import failed");
+    } finally {
+      setImportBusy(false);
+    }
+  }
+
   return (
     <div>
       <div className="row between" style={{ marginBottom: 16 }}>
@@ -138,6 +196,37 @@ export default function SettingsPage() {
         {resyncMsg && (
           <div className="small" style={{ marginTop: 8, color: resyncMsg.startsWith("Error") || resyncMsg.startsWith("Resync failed") ? "var(--danger)" : "var(--success)" }}>
             {resyncMsg}
+          </div>
+        )}
+      </div>
+
+      <div className="card">
+        <h3 style={{ marginTop: 0, fontSize: 15 }}>Backup & Restore</h3>
+        <div className="small muted" style={{ marginBottom: 12 }}>
+          Download a full backup of all sites, items, photos, and audio as a single JSON file.
+          Import a backup file to restore data on this or another server.
+        </div>
+        <button className="btn btn-primary btn-block" onClick={downloadFullBackup} disabled={backupBusy || importBusy}>
+          {backupBusy ? <><span className="spinner" /> Creating backup…</> : <><IconDownload size={18} /> Download Full Backup</>}
+        </button>
+        <button
+          className="btn btn-block"
+          style={{ marginTop: 8 }}
+          onClick={() => importFileRef.current?.click()}
+          disabled={backupBusy || importBusy}
+        >
+          {importBusy ? <><span className="spinner dark" /> Importing…</> : <><IconArchive size={18} /> Import Backup</>}
+        </button>
+        <input
+          ref={importFileRef}
+          type="file"
+          accept=".json,application/json"
+          className="hidden-file"
+          onChange={onImportFile}
+        />
+        {backupMsg && (
+          <div className="small" style={{ marginTop: 8, color: backupMsg.includes("failed") || backupMsg.includes("Import failed") ? "var(--danger)" : "var(--success)" }}>
+            {backupMsg}
           </div>
         )}
       </div>

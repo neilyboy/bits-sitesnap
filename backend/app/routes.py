@@ -160,6 +160,7 @@ def _site_to_out(s: Site, db: Session) -> SiteOut:
         sync_status=s.sync_status,
         deleted=s.deleted,
         item_count=count,
+        share_token=s.share_token,
     )
 
 
@@ -679,3 +680,52 @@ def view_shared_report(token: str, db: Session = Depends(get_db)):
         media_type="text/html",
         headers={"Content-Disposition": f'inline; filename="report.html"'},
     )
+
+
+# ---------- Backup / Restore ----------
+@router.post("/backup/full")
+def backup_full(_=Depends(require_auth), db: Session = Depends(get_db)):
+    """Download a full database backup as JSON (all sites, items, images, audio)."""
+    from .exports.backup import export_full_backup
+    data, filename = export_full_backup(db)
+    return Response(
+        content=data,
+        media_type="application/json",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.post("/sites/{site_id}/backup")
+def backup_site(site_id: int, _=Depends(require_auth), db: Session = Depends(get_db)):
+    """Download a single site backup as JSON."""
+    from .exports.backup import export_site_backup
+    try:
+        data, filename = export_site_backup(db, site_id)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return Response(
+        content=data,
+        media_type="application/json",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.post("/backup/import")
+async def backup_import(
+    overwrite: bool = False,
+    _=Depends(require_auth),
+    db: Session = Depends(get_db),
+    request: Request = None,
+):
+    """Import a backup JSON file. Multipart upload with 'file' field."""
+    from .exports.backup import import_backup
+    body = await request.body()
+    if not body:
+        raise HTTPException(status_code=400, detail="No data received")
+    try:
+        result = import_backup(db, body, overwrite=overwrite)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Import failed: {e}")
+    return result

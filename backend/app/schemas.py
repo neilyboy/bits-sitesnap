@@ -70,6 +70,7 @@ class SiteOut(SiteBase):
     deleted: bool
     item_count: int = 0
     logo_url: str = ""
+    share_token: str = ""
 
 
 # ---------- Items ----------

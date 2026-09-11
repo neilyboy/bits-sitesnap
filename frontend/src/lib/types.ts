@@ -28,6 +28,7 @@ export interface SiteDTO {
   deleted: boolean;
   item_count: number;
   logo_url: string;
+  share_token: string;
 }
 
 export interface ItemDTO {

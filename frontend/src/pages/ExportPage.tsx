@@ -2,8 +2,8 @@ import { Link, useParams } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, getSetting } from "../db";
 import { api } from "../lib/api";
-import { useState } from "react";
-import { IconChevronLeft, IconFileText, IconDownload, IconArchive, IconLink, IconCopy, IconTrash, IconCheck } from "../components/Icons";
+import { useState, useEffect } from "react";
+import { IconChevronLeft, IconFileText, IconDownload, IconArchive, IconLink, IconCopy, IconTrash, IconCheck, IconRefreshCw } from "../components/Icons";
 
 export default function ExportPage() {
   const { id } = useParams<{ id: string }>();
@@ -13,6 +13,18 @@ export default function ExportPage() {
   const [shareUrl, setShareUrl] = useState("");
   const [shareBusy, setShareBusy] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // Build the share URL from the site's existing token (if any) on load.
+  useEffect(() => {
+    if (site?.share_token) {
+      getSetting("server_url", "").then((custom) => {
+        const base = custom ? custom.replace(/\/$/, "") : window.location.origin;
+        setShareUrl(`${base}/api/share/${site.share_token}`);
+      });
+    } else {
+      setShareUrl("");
+    }
+  }, [site?.share_token]);
 
   async function download(kind: "pdf" | "html" | "zip") {
     if (!site?.id) {
@@ -49,12 +61,38 @@ export default function ExportPage() {
     }
   }
 
+  async function downloadSiteBackup() {
+    if (!site?.id) {
+      setError("Site must be synced before backing up. Tap Sync now.");
+      return;
+    }
+    setBusy("backup");
+    setError("");
+    try {
+      const blob = await api.backupSite(site.id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${site.business_name || "site"}_backup.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      setError(e?.message ?? "Backup failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function createShareLink() {
     if (!site?.id) return;
     setShareBusy(true);
     setError("");
     try {
       const { share_token } = await api.createShareLink(site.id);
+      // Save token to local DB so it persists across page visits.
+      await db.sites.update(site.client_uuid, { share_token });
       let base = await getSetting("server_url", "");
       base = base ? base.replace(/\/$/, "") : window.location.origin;
       setShareUrl(`${base}/api/share/${share_token}`);
@@ -72,6 +110,7 @@ export default function ExportPage() {
     setError("");
     try {
       await api.revokeShareLink(site.id);
+      await db.sites.update(site.client_uuid, { share_token: "" });
       setShareUrl("");
       setCopied(false);
     } catch (e: any) {
@@ -131,6 +170,9 @@ export default function ExportPage() {
         <button className="btn btn-lg" onClick={() => download("zip")} disabled={!!busy}>
           {busy === "zip" ? <><span className="spinner dark" /> Generating ZIP…</> : (<><IconArchive size={20} /> Download ZIP (images + text overlay)</>)}
         </button>
+        <button className="btn btn-lg" onClick={downloadSiteBackup} disabled={!!busy}>
+          {busy === "backup" ? <><span className="spinner dark" /> Creating backup…</> : (<><IconDownload size={20} /> Backup This Site (JSON)</>)}
+        </button>
       </div>
 
       {error && <div className="small" style={{ color: "var(--danger)", marginTop: 12 }}>{error}</div>}
@@ -144,6 +186,9 @@ export default function ExportPage() {
         </div>
         <div className="small" style={{ color: "var(--text-secondary)", marginTop: 10 }}>
           <strong style={{ color: "var(--text)" }}>ZIP</strong> — every image with its notes overlaid in a solid bar at the bottom, plus manifest.csv. Extract to your network share.
+        </div>
+        <div className="small" style={{ color: "var(--text-secondary)", marginTop: 10 }}>
+          <strong style={{ color: "var(--text)" }}>Backup</strong> — JSON backup of this site with all data and embedded images. Import via Settings to restore later.
         </div>
       </div>
 
@@ -186,12 +231,15 @@ export default function ExportPage() {
               <button className="btn" onClick={() => window.open(shareUrl, "_blank")} title="Open in new tab">
                 Open
               </button>
+              <button className="btn" onClick={createShareLink} disabled={shareBusy} title="Generate a new link (old one stops working)">
+                {shareBusy ? <><span className="spinner" /> …</> : <><IconRefreshCw size={16} /> Regenerate</>}
+              </button>
               <button className="btn btn-danger" onClick={revokeShareLink} disabled={shareBusy} title="Disable the share link">
                 {shareBusy ? <><span className="spinner" /> …</> : <><IconTrash size={16} /> Revoke</>}
               </button>
             </div>
             <div className="small muted" style={{ marginTop: 8 }}>
-              Anyone with this link can view the report. No login needed.
+              Anyone with this link can view the report. No login needed. The report is generated from live data each time the link is opened.
             </div>
           </div>
         )}

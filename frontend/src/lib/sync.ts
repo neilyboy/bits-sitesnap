@@ -221,6 +221,7 @@ async function push(): Promise<{ sites: number; items: number; images: number; a
         sync_status: "synced",
         deleted: s.deleted,
         logo_url: s.logo_url || undefined,
+        share_token: s.share_token || "",
       });
     }
     for (const i of resp.items) {
@@ -351,7 +352,7 @@ async function pull(): Promise<{ server_time: string; sites: number; items: numb
           && existing.sync_status === "synced") {
         // skip — we already have this or newer, but update logo_url if server has one
         if (s.logo_url && !existing.logo_url) {
-          await db.sites.update(s.client_uuid, { logo_url: s.logo_url, logo_synced: true });
+          await db.sites.update(s.client_uuid, { logo_url: s.logo_url, logo_synced: true, share_token: s.share_token || "" });
         }
       } else if (existing && existing.sync_status === "pending") {
         if (!existing.server_updated_at || existing.server_updated_at < s.server_updated_at) {
@@ -527,6 +528,7 @@ function siteFromDto(s: import("./types").SiteDTO): SiteRow {
     deleted: s.deleted,
     logo_url: s.logo_url || undefined,
     logo_synced: true, // if server has a logo_url, it's already synced
+    share_token: s.share_token || "",
   };
 }
 

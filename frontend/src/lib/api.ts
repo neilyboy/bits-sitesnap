@@ -176,4 +176,31 @@ export const api = {
   async revokeShareLink(siteId: number): Promise<{ ok: boolean }> {
     return request(`/api/sites/${siteId}/share`, { method: "DELETE" });
   },
+
+  async backupFull(): Promise<Blob> {
+    return request<Blob>(`/api/backup/full`, { method: "POST" }, true);
+  },
+
+  async backupSite(siteId: number): Promise<Blob> {
+    return request<Blob>(`/api/sites/${siteId}/backup`, { method: "POST" }, true);
+  },
+
+  async importBackup(data: ArrayBuffer, overwrite: boolean): Promise<any> {
+    const base = await baseUrl();
+    const url = `${base}/api/backup/import?overwrite=${overwrite}`;
+    const headers = new Headers();
+    const auth = await authHeaders();
+    for (const [k, v] of Object.entries(auth)) headers.set(k, v);
+    headers.set("Content-Type", "application/json");
+    const res = await fetch(url, { method: "POST", headers, body: data });
+    if (!res.ok) {
+      let detail = `${res.status} ${res.statusText}`;
+      try {
+        const j = await res.json();
+        if (j.detail) detail = typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail);
+      } catch { /* ignore */ }
+      throw new ApiError(res.status, detail);
+    }
+    return res.json();
+  },
 };

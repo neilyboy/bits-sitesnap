@@ -24,6 +24,7 @@ export interface SiteRow {
   logo_blob?: Blob;       // stored in IndexedDB (offline-capable)
   logo_url?: string;      // server path to fetch logo if blob is missing
   logo_synced: boolean;   // whether logo binary has been uploaded
+  share_token?: string;   // public share token (empty = no sharing)
 }
 
 export interface ItemRow {
