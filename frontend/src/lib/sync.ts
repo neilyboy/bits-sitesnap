@@ -351,9 +351,17 @@ async function pull(): Promise<{ server_time: string; sites: number; items: numb
       if (existing && existing.server_updated_at
           && existing.server_updated_at >= s.server_updated_at
           && existing.sync_status === "synced") {
-        // skip — we already have this or newer, but update logo_url if server has one
+        // skip — we already have this or newer, but sync share_token and group_name
+        // in case they changed on the server (e.g. share link created from another device)
+        const updates: Partial<SiteRow> = {};
+        if (s.share_token && s.share_token !== existing.share_token) updates.share_token = s.share_token;
+        if ((s.group_name || "") !== (existing.group_name || "")) updates.group_name = s.group_name || "";
         if (s.logo_url && !existing.logo_url) {
-          await db.sites.update(s.client_uuid, { logo_url: s.logo_url, logo_synced: true, share_token: s.share_token || "", group_name: s.group_name || "" });
+          updates.logo_url = s.logo_url;
+          updates.logo_synced = true;
+        }
+        if (Object.keys(updates).length) {
+          await db.sites.update(s.client_uuid, updates);
         }
       } else if (existing && existing.sync_status === "pending") {
         if (!existing.server_updated_at || existing.server_updated_at < s.server_updated_at) {

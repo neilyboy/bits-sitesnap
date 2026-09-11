@@ -62,6 +62,7 @@ def _site_out(s: Site, item_count: int = 0) -> SiteOut:
         deleted=s.deleted,
         item_count=item_count,
         logo_url=f"/api/sites/{s.id}/logo" if s.logo_path else "",
+        share_token=s.share_token,
     )
 
 
