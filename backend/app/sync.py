@@ -54,6 +54,7 @@ def _site_out(s: Site, item_count: int = 0) -> SiteOut:
         surveyor_name=s.surveyor_name,
         survey_date=s.survey_date,
         general_notes=s.general_notes,
+        group_name=s.group_name,
         created_at=s.created_at,
         updated_at=s.updated_at,
         server_updated_at=s.server_updated_at,
@@ -146,6 +147,7 @@ def push_sites(s: Session, payload: Iterable[SiteIn]) -> list[Site]:
                 surveyor_name=rec.surveyor_name,
                 survey_date=rec.survey_date,
                 general_notes=rec.general_notes,
+                group_name=rec.group_name,
                 sync_status="synced",
                 deleted=rec.deleted,
                 server_updated_at=now,
@@ -167,6 +169,7 @@ def push_sites(s: Session, payload: Iterable[SiteIn]) -> list[Site]:
             existing.surveyor_name = rec.surveyor_name
             existing.survey_date = rec.survey_date
             existing.general_notes = rec.general_notes
+            existing.group_name = rec.group_name
             existing.sync_status = "synced"
             existing.deleted = rec.deleted
             existing.server_updated_at = now

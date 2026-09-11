@@ -154,6 +154,7 @@ def _site_to_out(s: Site, db: Session) -> SiteOut:
         surveyor_name=s.surveyor_name,
         survey_date=s.survey_date,
         general_notes=s.general_notes,
+        group_name=s.group_name,
         created_at=s.created_at,
         updated_at=s.updated_at,
         server_updated_at=s.server_updated_at,
@@ -198,6 +199,7 @@ def create_site(body: SiteIn, _=Depends(require_auth), db: Session = Depends(get
         surveyor_name=body.surveyor_name,
         survey_date=body.survey_date,
         general_notes=body.general_notes,
+        group_name=body.group_name,
         sync_status="synced",
         deleted=False,
         server_updated_at=now,
@@ -225,6 +227,7 @@ def update_site(site_id: int, body: SiteIn, _=Depends(require_auth), db: Session
     s.surveyor_name = body.surveyor_name
     s.survey_date = body.survey_date
     s.general_notes = body.general_notes
+    s.group_name = body.group_name
     s.server_updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(s)

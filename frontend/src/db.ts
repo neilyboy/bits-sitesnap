@@ -15,6 +15,7 @@ export interface SiteRow {
   surveyor_name: string;
   survey_date: string;
   general_notes: string;
+  group_name: string;
   created_at: string;
   updated_at: string;
   server_updated_at?: string;

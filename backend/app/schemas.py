@@ -51,6 +51,7 @@ class SiteBase(BaseModel):
     surveyor_name: str = ""
     survey_date: str = ""
     general_notes: str = ""
+    group_name: str = ""
 
 
 class SiteIn(SiteBase):

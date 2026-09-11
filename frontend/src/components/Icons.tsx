@@ -214,3 +214,9 @@ export const IconCopy = ({ size = 16, className, style }: IconProps) => (
     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
   </svg>
 );
+
+export const IconFolder = ({ size = 18, className, style }: IconProps) => (
+  <svg {...base(size)} className={className} style={style}>
+    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+  </svg>
+);

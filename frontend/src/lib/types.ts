@@ -21,6 +21,7 @@ export interface SiteDTO {
   surveyor_name: string;
   survey_date: string;
   general_notes: string;
+  group_name: string;
   created_at: string;
   updated_at: string;
   server_updated_at: string;
@@ -107,6 +108,7 @@ export interface SiteInDTO {
   surveyor_name: string;
   survey_date: string;
   general_notes: string;
+  group_name: string;
   deleted: boolean;
 }
 

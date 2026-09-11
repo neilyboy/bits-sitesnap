@@ -37,6 +37,10 @@ def _migrate_add_columns() -> None:
         with engine.begin() as conn:
             conn.execute(text("ALTER TABLE sites ADD COLUMN share_token VARCHAR(64) DEFAULT ''"))
             conn.execute(text("CREATE INDEX IF NOT EXISTS ix_sites_share_token ON sites (share_token)"))
+    if "group_name" not in site_cols:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE sites ADD COLUMN group_name VARCHAR(120) DEFAULT ''"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_sites_group_name ON sites (group_name)"))
 
 
 def _seed_categories() -> None:

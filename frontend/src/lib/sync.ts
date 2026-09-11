@@ -222,6 +222,7 @@ async function push(): Promise<{ sites: number; items: number; images: number; a
         deleted: s.deleted,
         logo_url: s.logo_url || undefined,
         share_token: s.share_token || "",
+        group_name: s.group_name || "",
       });
     }
     for (const i of resp.items) {
@@ -352,7 +353,7 @@ async function pull(): Promise<{ server_time: string; sites: number; items: numb
           && existing.sync_status === "synced") {
         // skip — we already have this or newer, but update logo_url if server has one
         if (s.logo_url && !existing.logo_url) {
-          await db.sites.update(s.client_uuid, { logo_url: s.logo_url, logo_synced: true, share_token: s.share_token || "" });
+          await db.sites.update(s.client_uuid, { logo_url: s.logo_url, logo_synced: true, share_token: s.share_token || "", group_name: s.group_name || "" });
         }
       } else if (existing && existing.sync_status === "pending") {
         if (!existing.server_updated_at || existing.server_updated_at < s.server_updated_at) {
@@ -463,6 +464,7 @@ function siteToDto(s: SiteRow): SiteInDTO {
     surveyor_name: s.surveyor_name,
     survey_date: s.survey_date,
     general_notes: s.general_notes,
+    group_name: s.group_name || "",
     deleted: s.deleted,
   };
 }
@@ -521,6 +523,7 @@ function siteFromDto(s: import("./types").SiteDTO): SiteRow {
     surveyor_name: s.surveyor_name,
     survey_date: s.survey_date,
     general_notes: s.general_notes,
+    group_name: s.group_name || "",
     created_at: s.created_at,
     updated_at: s.updated_at,
     server_updated_at: s.server_updated_at,

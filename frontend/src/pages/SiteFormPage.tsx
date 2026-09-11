@@ -25,11 +25,20 @@ export default function SiteFormPage() {
     surveyor_name: "",
     survey_date: today(),
     general_notes: "",
+    group_name: "",
   });
   const [saving, setSaving] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string>("");
   const [logoBlob, setLogoBlob] = useState<Blob | undefined>(undefined);
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const existingGroups = useLiveQuery(async () => {
+    const all = await db.sites.toArray();
+    const groups = new Set<string>();
+    for (const s of all) {
+      if (!s.deleted && s.group_name) groups.add(s.group_name);
+    }
+    return [...groups].sort();
+  }, []);
 
   useEffect(() => {
     if (existing) {
@@ -123,6 +132,7 @@ export default function SiteFormPage() {
           surveyor_name: form.surveyor_name ?? "",
           survey_date: form.survey_date ?? today(),
           general_notes: form.general_notes ?? "",
+          group_name: form.group_name ?? "",
           created_at: now,
           updated_at: now,
           sync_status: "pending",
@@ -210,6 +220,23 @@ export default function SiteFormPage() {
       <div className="field">
         <label>Business Name *</label>
         <input value={form.business_name ?? ""} onChange={(e) => set("business_name", e.target.value)} required autoFocus />
+      </div>
+      <div className="field">
+        <label>Group / Client (optional)</label>
+        <input
+          value={form.group_name ?? ""}
+          onChange={(e) => set("group_name", e.target.value)}
+          placeholder="e.g. OSF, Commercial, Residential"
+          list="existing-groups"
+        />
+        <datalist id="existing-groups">
+          {(existingGroups ?? []).map((g) => (
+            <option key={g} value={g} />
+          ))}
+        </datalist>
+        <div className="small muted" style={{ marginTop: 4 }}>
+          Sites with the same group appear together in a collapsible section on the home page. Leave blank for standalone sites.
+        </div>
       </div>
       <div className="field">
         <label>Survey Date</label>
